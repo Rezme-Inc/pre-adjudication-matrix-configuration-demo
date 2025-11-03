@@ -1,0 +1,13 @@
+## Runtime-only Dockerfile: serves a pre-built `dist/` directory with nginx.
+## This image does NOT contain build-time secrets.
+
+FROM nginx:stable-alpine
+
+# copy a lightweight nginx config that supports SPA fallback
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+# copy built app (expect CI to produce `dist/` before building this image)
+COPY dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

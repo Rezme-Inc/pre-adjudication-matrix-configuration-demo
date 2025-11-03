@@ -1,0 +1,7 @@
+FROM grafana/k6:latest
+WORKDIR /scripts
+
+# Copy the k6 script into the image so it can be run inside CI/staging without mounting
+COPY load-tests/k6/submitters.js /scripts/submitters.js
+
+ENTRYPOINT ["k6", "run", "/scripts/submitters.js"]

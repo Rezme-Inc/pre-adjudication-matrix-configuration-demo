@@ -1,0 +1,25 @@
+## Multi-stage Dockerfile to build the Vite app and serve with nginx
+## This sanitized version does NOT accept or set any secrets (VITE_SUPABASE_*).
+## Use CI to run `npm run build` with secrets available in the runner if you need to inject VITE_ values.
+
+FROM node:18-alpine AS builder
+WORKDIR /app
+
+# install dependencies
+COPY package.json package-lock.json* ./
+RUN npm ci --silent || npm install --silent
+
+# copy source
+COPY . .
+
+# optional build arg for base path (non-sensitive)
+ARG VITE_BASE=/
+# ensure base ends with slash
+RUN if [ "${VITE_BASE:(-1)}" != "/" ]; then export VITE_BASE="${VITE_BASE}/"; fi && \
+    npm run build --if-present -- --base "$VITE_BASE"
+
+FROM nginx:stable-alpine
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

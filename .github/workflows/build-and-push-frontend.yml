@@ -1,0 +1,59 @@
+name: Build and Push Frontend (image)
+
+# Trigger this workflow only after the repository `CI` workflow finishes.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    # Only run when the triggering CI workflow completed successfully on the main branch
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-and-push-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      # base image name; tags applied per-run
+      IMAGE_BASE: ghcr.io/${{ github.repository_owner }}/pre-adj-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (inject VITE_ secrets at build time)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_BASE: "/pre-adjudication-matrix-configuration/"
+        run: |
+          # Build the static site; secrets are only available in this ephemeral runner
+          npm run build
+
+      - name: Build and (optionally) push runtime image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/Dockerfile.frontend-runtime
+          push: ${{ github.ref_name == 'main' }}
+          tags: |
+            ${{ env.IMAGE_BASE }}:${{ github.sha }}
+            ${{ env.IMAGE_BASE }}:latest
+          # keep the image small and reproducible; no secrets baked into image
+          build-args: |
+            VITE_BASE=/pre-adjudication-matrix-configuration/
