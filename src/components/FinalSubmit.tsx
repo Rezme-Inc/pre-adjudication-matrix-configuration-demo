@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import type { OffenseResponse } from './OffensePage'
+import { Input } from './ui/input'
+import { Label } from './ui/label'
+import { Button } from './ui/button'
 
 export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string }; responses: OffenseResponse[] }> = ({ user, responses }) => {
   const [emails, setEmails] = useState('')
@@ -56,51 +59,59 @@ export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string
   }
 
   return (
-    <div style={{ maxWidth: 900 }}>
-      <p>You're about to submit the following {responses.length} offense assessments. Please provide one or more recipient emails to receive the summary.</p>
+    <div className="max-w-3xl space-y-6">
+      <p className="text-gray-600">You're about to submit the following {responses.length} offense assessments. Please provide one or more recipient emails to receive the summary.</p>
 
-      <div style={{ marginBottom: 12 }}>
-        <h3>Summary</h3>
-        <ol>
+      <div className="bg-gray-50 rounded-lg p-4">
+        <h3 className="text-lg font-semibold mb-3 text-gray-900">Summary</h3>
+        <ol className="space-y-2 list-decimal list-inside">
           {responses.map((r, i) => (
-            <li key={i}><strong>{r.offense}</strong> — {r.decision} (look-back: {r.lookBackYears} yrs){r.notes ? ` — ${r.notes}` : ''}</li>
+            <li key={i} className="text-gray-700">
+              <strong className="text-gray-900">{r.offense}</strong> — {r.decision} 
+              {r.lookBackYears !== null && ` (look-back: ${r.lookBackYears} ${r.lookBackYears === 1 ? 'yr' : 'yrs'})`}
+              {r.notes && ` — ${r.notes}`}
+            </li>
           ))}
         </ol>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="emails">Recipient email(s) (comma-separated)</label>
-            <input
-              id="emails"
-              value={emails}
-              onChange={(e) => setEmails(e.target.value)}
-              placeholder="reviewer@example.com,ops@example.com"
-              disabled={status.type === 'loading' || status.type === 'success'}
-            />
-        </div>
-          <button 
-            type="submit" 
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="emails">Recipient email(s) (comma-separated)</Label>
+          <Input
+            id="emails"
+            value={emails}
+            onChange={(e) => setEmails(e.target.value)}
+            placeholder="reviewer@example.com,ops@example.com"
             disabled={status.type === 'loading' || status.type === 'success'}
-          >
-            {status.type === 'loading' ? 'Submitting...' : 'Submit All'}
-          </button>
+          />
+        </div>
+        <Button 
+          type="submit" 
+          disabled={status.type === 'loading' || status.type === 'success'}
+          className="w-full"
+        >
+          {status.type === 'loading' ? 'Submitting...' : 'Submit All'}
+        </Button>
       </form>
 
-        {status.message && (
-          <p style={{ 
-            marginTop: 12,
-            color: status.type === 'error' ? '#dc2626' : status.type === 'success' ? '#16a34a' : 'inherit'
-          }}>
-            {status.message}
-          </p>
-        )}
+      {status.message && (
+        <p className={`mt-4 p-3 rounded-md ${
+          status.type === 'error' 
+            ? 'bg-red-50 text-red-700 border border-red-200' 
+            : status.type === 'success' 
+            ? 'bg-green-50 text-green-700 border border-green-200'
+            : 'bg-gray-50 text-gray-700'
+        }`}>
+          {status.message}
+        </p>
+      )}
 
-        {batchId && (
-          <p style={{ marginTop: 12, fontSize: '0.875em', color: '#666' }}>
-            Reference ID: {batchId}
-          </p>
-        )}
+      {batchId && (
+        <p className="mt-4 text-sm text-gray-500">
+          Reference ID: <span className="font-mono">{batchId}</span>
+        </p>
+      )}
     </div>
   )
 }

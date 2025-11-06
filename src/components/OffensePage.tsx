@@ -1,4 +1,10 @@
 import React, { useState } from 'react'
+import { RadioGroup, RadioGroupItem } from './ui/radio-group'
+import { Label } from './ui/label'
+import { Slider } from './ui/slider'
+import { Checkbox } from './ui/checkbox'
+import { Textarea } from './ui/textarea'
+import { Button } from './ui/button'
 
 export type OffenseResponse = {
   offense: string
@@ -16,17 +22,30 @@ export const OffensePage: React.FC<{
 }> = ({ offense, index, total, onBack, onNext }) => {
   const [decision, setDecision] = useState<'Always Eligible' | 'Job Dependent' | 'Always Review'>('Always Eligible')
   const [lookBackYears, setLookBackYears] = useState<number | null>(null)
+  const [lookbackEnabled, setLookbackEnabled] = useState(false)
   const [notes, setNotes] = useState('')
 
+  // Map decision to radio value
+  const decisionValue = decision === 'Always Eligible' ? 'display' : decision === 'Job Dependent' ? 'dispute' : 'review'
+
   // Reset look-back period when switching decisions
-  const handleDecisionChange = (newDecision: 'Always Eligible' | 'Job Dependent' | 'Always Review') => {
+  const handleDecisionChange = (value: string) => {
+    const newDecision = value === 'display' ? 'Always Eligible' : value === 'dispute' ? 'Job Dependent' : 'Always Review'
     setDecision(newDecision)
     if (newDecision === 'Always Eligible') {
       setLookBackYears(null)
-    } else if (lookBackYears === null) {
-      // Set a default value when switching from Always Eligible to other options
-      setLookBackYears(1)
+      setLookbackEnabled(false)
+    } else {
+      if (lookBackYears === null) {
+        setLookBackYears(1)
+      }
+      setLookbackEnabled(true)
     }
+  }
+
+  // Handle slider change
+  const handleSliderChange = (values: number[]) => {
+    setLookBackYears(values[0])
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,90 +53,141 @@ export const OffensePage: React.FC<{
     onNext({ offense, decision, lookBackYears, notes: notes.trim() || undefined })
   }
 
+  // Convert years to slider value
+  const sliderValue = lookBackYears !== null ? lookBackYears : 1
+
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 800 }}>
-      <h2>{offense}</h2>
-
-      <section style={{ marginBottom: 12 }}>
-        <strong>Voting Options</strong>
-        <p>
-          Please classify the offense above. Choose the most appropriate decision:
-          <ul>
-            <li><strong>Always Eligible</strong> — candidate should always be eligible.</li>
-            <li><strong>Job Dependent</strong> — eligibility depends on the role/context.</li>
-            <li><strong>Always Review</strong> — this should always be reviewed by a human.</li>
-          </ul>
-          Provide a short look-back period in years and an optional one-sentence rationale.
-        </p>
-      </section>
-
-      <div className="form-group">
-        <label>Decisions</label>
-        <div>
-          <label style={{ marginRight: 12 }}>
-            <input 
-              type="radio" 
-              name="decision" 
-              value="Always Eligible" 
-              checked={decision === 'Always Eligible'} 
-              onChange={() => handleDecisionChange('Always Eligible')} 
-            /> Always Eligible
-          </label>
-          <label style={{ marginRight: 12 }}>
-            <input 
-              type="radio" 
-              name="decision" 
-              value="Job Dependent" 
-              checked={decision === 'Job Dependent'} 
-              onChange={() => handleDecisionChange('Job Dependent')} 
-            /> Job Dependent
-          </label>
-          <label>
-            <input 
-              type="radio" 
-              name="decision" 
-              value="Always Review" 
-              checked={decision === 'Always Review'} 
-              onChange={() => handleDecisionChange('Always Review')} 
-            /> Always Review
-          </label>
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Category Section */}
+      <div className="text-center mb-8">
+        <p className="text-gray-400 text-sm mb-3">Matrix Configuration, Step {index + 1} of {total}</p>
+        <h2 className="text-[32px] font-bold uppercase tracking-wide text-gray-900 mb-4">
+          {offense}
+        </h2>
       </div>
 
-      <div className="form-group">
-        <label htmlFor="lookback">
-          Look-back period (years)
-          {decision === 'Always Eligible' && (
-            <span style={{ marginLeft: '8px', color: '#666', fontSize: '0.9em' }}>
-              (Not applicable for Always Eligible)
-            </span>
-          )}
-        </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <input
-            id="lookback"
-            type="range"
-            min={1}
-            max={10}
-            value={lookBackYears ?? 1}
-            onChange={(e) => setLookBackYears(Number(e.target.value))}
+      {/* Options Section */}
+      <div className="mb-8">
+        <h3 className="text-gray-500 mb-4 uppercase tracking-wide text-center text-sm">
+          Review option
+        </h3>
+        <RadioGroup 
+          value={decisionValue} 
+          onValueChange={handleDecisionChange} 
+          className="space-y-4"
+        >
+          {[
+            { id: 'display', label: 'Always Eligible', description: 'Approve in all cases', color: 'blue' },
+            { id: 'dispute', label: 'Job Dependent', description: 'Review individual context', color: 'purple' },
+            { id: 'review', label: 'Always Review', description: 'Requires manual decision', color: 'orange' }
+          ].map((option) => (
+            <div 
+              key={option.id} 
+              className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                decisionValue === option.id 
+                  ? option.color === 'blue' 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : option.color === 'purple'
+                    ? 'border-purple-400 bg-purple-50'
+                    : 'border-[#F0D283] bg-[#F0D283]/20'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <RadioGroupItem value={option.id} id={option.id} className="mt-0.5" />
+              <div className="flex-1">
+                <Label htmlFor={option.id} className="text-gray-900 cursor-pointer">
+                  {option.label}
+                </Label>
+                <p className="text-gray-500 mt-0.5 text-sm">{option.description}</p>
+              </div>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
+      {/* Lookback Period Section */}
+      <div className={`space-y-4 mb-8 ${decision === 'Always Eligible' ? 'opacity-40 pointer-events-none' : ''}`}>
+        <div className="flex items-center space-x-3">
+          <Checkbox 
+            id="lookback" 
+            checked={lookbackEnabled}
+            onCheckedChange={(checked) => {
+              setLookbackEnabled(checked as boolean)
+              if (checked && lookBackYears === null) {
+                setLookBackYears(1)
+              }
+            }}
             disabled={decision === 'Always Eligible'}
-            style={{ flex: 1 }}
           />
-          <span style={{ minWidth: '40px', textAlign: 'right' }}>
-            {decision === 'Always Eligible' ? '—' : `${lookBackYears ?? 1} yr${(lookBackYears ?? 1) !== 1 ? 's' : ''}`}
-          </span>
+          <Label 
+            htmlFor="lookback" 
+            className={decision === 'Always Eligible' ? "text-gray-900 cursor-not-allowed" : "text-gray-900 cursor-pointer"}
+          >
+            Enable Lookback Period
+          </Label>
         </div>
+
+        {/* Note when greyed out */}
+        {decision === 'Always Eligible' && (
+          <p className="text-gray-400 text-sm pl-7">
+            If you choose 'Always Eligible' the lookback period is not necessary
+          </p>
+        )}
+
+        {/* Year Slider */}
+        {lookbackEnabled && (
+          <div className="pl-7 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Years</span>
+              <span className="text-pink-600 tabular-nums">
+                {lookBackYears ?? 1} {lookBackYears === 1 ? 'year' : 'years'}
+              </span>
+            </div>
+            <Slider
+              value={[sliderValue]}
+              onValueChange={handleSliderChange}
+              min={1}
+              max={10}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-gray-400 text-xs">
+              <span>1</span>
+              <span>10</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="form-group">
-        <label htmlFor="notes">Notes (optional, one sentence)</label>
-        <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+      {/* Notes Section */}
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes (optional, one sentence)</Label>
+        <Textarea 
+          id="notes" 
+          value={notes} 
+          onChange={(e) => setNotes(e.target.value)} 
+          rows={3}
+          className="w-full"
+        />
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={onBack} disabled={index === 0}>Back</button>
-        <button type="submit">Submit & Next</button>
+      {/* Submit Button */}
+      <div className="flex gap-3 pt-4">
+        <Button 
+          type="button" 
+          onClick={onBack} 
+          disabled={index === 0}
+          variant="outline"
+          className="flex-1"
+        >
+          Back
+        </Button>
+        <Button 
+          type="submit" 
+          className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
+        >
+          Submit & Next
+        </Button>
       </div>
     </form>
   )

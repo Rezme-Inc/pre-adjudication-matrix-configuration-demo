@@ -3,6 +3,7 @@ import './App.css'
 import { OffensePage } from './components/OffensePage'
 import { FinalSubmit } from './components/FinalSubmit'
 import AdminDashboard from './pages/AdminDashboard'
+import { Button } from './components/ui/button'
 
 type User = {
   firstName: string
@@ -69,10 +70,12 @@ const App: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="container">
-        <h1>Pre-Adjudication - Quick Entry</h1>
-        <p>Please enter your name to begin. No login required.</p>
-        <SimpleNameForm onStart={start} />
+      <div className="bg-white min-h-screen flex items-center justify-center p-6">
+        <div className="bg-white rounded-lg shadow-sm p-8 w-full max-w-md">
+          <h1 className="text-2xl font-bold mb-2 text-gray-900">Pre-Adjudication - Quick Entry</h1>
+          <p className="text-gray-600 mb-6">Please enter your name to begin. No login required.</p>
+          <SimpleNameForm onStart={start} />
+        </div>
       </div>
     )
   }
@@ -80,54 +83,58 @@ const App: React.FC = () => {
   // If we've collected FIRST_N_OFFENSES responses, show final submit
   if (responses.length >= FIRST_N_OFFENSES) {
     return (
-      <div className="container">
-        <header>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>User: {user.firstName} {user.lastName}</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowAdmin(true)}>Admin</button>
-              <button onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</button>
+      <div className="bg-white min-h-screen">
+        <div className="max-w-4xl mx-auto p-6">
+          <header className="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div className="flex justify-between items-center">
+              <div className="text-gray-900 font-medium">User: {user.firstName} {user.lastName}</div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowAdmin(true)}>Admin</Button>
+                <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</Button>
+              </div>
             </div>
-          </div>
-        </header>
-        {showAdmin ? (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h1>Admin Dashboard</h1>
-              <button onClick={() => setShowAdmin(false)}>Back</button>
+          </header>
+          {showAdmin ? (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                <Button variant="outline" onClick={() => setShowAdmin(false)}>Back</Button>
+              </div>
+              <AdminDashboard />
             </div>
-            <AdminDashboard />
-          </div>
-        ) : (
-          <>
-            <h1>Final Submission</h1>
-            <FinalSubmit user={user} responses={responses} />
-          </>
-        )}
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h1 className="text-2xl font-bold mb-6 text-gray-900">Final Submission</h1>
+              <FinalSubmit user={user} responses={responses} />
+            </div>
+          )}
+        </div>
       </div>
     )
   }
 
   const offense = OFFENSES[currentIndex]
   return (
-    <div className="container">
-      <header>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>User: {user.firstName} {user.lastName}</div>
-          <button onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Logout</button>
-        </div>
-      </header>
+    <div className="bg-white min-h-screen flex items-center justify-center p-6">
+      <div className="bg-white rounded-lg shadow-sm w-full max-w-2xl p-8">
+        <header className="mb-6">
+          <div className="flex justify-between items-center">
+            <div className="text-gray-900 font-medium">User: {user.firstName} {user.lastName}</div>
+            <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Logout</Button>
+          </div>
+        </header>
 
-      <h1>Offense {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
-      <p>Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
+        <h1 className="text-2xl font-bold mb-2 text-gray-900">Offense {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
+        <p className="text-gray-600 mb-6">Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
 
-      <OffensePage
-        offense={offense}
-        index={currentIndex}
-        total={FIRST_N_OFFENSES}
-        onBack={handleBack}
-        onNext={handleNext}
-      />
+        <OffensePage
+          offense={offense}
+          index={currentIndex}
+          total={FIRST_N_OFFENSES}
+          onBack={handleBack}
+          onNext={handleNext}
+        />
+      </div>
     </div>
   )
 }
@@ -143,16 +150,28 @@ const SimpleNameForm: React.FC<{ onStart: (first: string, last: string) => void 
   }
 
   return (
-    <form onSubmit={submit} style={{ maxWidth: 520 }}>
-      <div className="form-group">
-        <label htmlFor="first">First name</label>
-        <input id="first" value={first} onChange={(e) => setFirst(e.target.value)} required />
+    <form onSubmit={submit} className="space-y-4">
+      <div>
+        <label htmlFor="first" className="block text-sm font-medium text-gray-900 mb-2">First name</label>
+        <input 
+          id="first" 
+          value={first} 
+          onChange={(e) => setFirst(e.target.value)} 
+          required 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        />
       </div>
-      <div className="form-group">
-        <label htmlFor="last">Last name</label>
-        <input id="last" value={last} onChange={(e) => setLast(e.target.value)} required />
+      <div>
+        <label htmlFor="last" className="block text-sm font-medium text-gray-900 mb-2">Last name</label>
+        <input 
+          id="last" 
+          value={last} 
+          onChange={(e) => setLast(e.target.value)} 
+          required 
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        />
       </div>
-      <button type="submit">Start</button>
+      <Button type="submit" className="w-full">Start</Button>
     </form>
   )
 }
