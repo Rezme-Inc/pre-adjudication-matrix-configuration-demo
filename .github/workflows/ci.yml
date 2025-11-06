@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Build (Node ${{ matrix.node }})
+    name: Build and Test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,7 +20,7 @@ jobs:
         node: [18, 20]
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -32,27 +32,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      # Delete existing artifacts for this run (if any)
-      - name: Delete existing artifacts (if present)
-        run: |
-          echo "Deleting any existing artifacts for run ${{ github.run_id }}..."
-          gh api -X GET "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
-            --jq '.artifacts[].id' | while read artifact_id; do
-            echo "Deleting artifact ID $artifact_id"
-            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/${artifact_id}}" || true
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ github.run_id }}
-          path: dist/
-          if-no-files-found: error
+      - name: Run tests
+        run: npm test --if-present

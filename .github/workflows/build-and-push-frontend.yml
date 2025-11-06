@@ -24,12 +24,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download build artifact from CI
-        uses: actions/download-artifact@v4
-        with:
-          name: build-${{ github.event.workflow_run.id }}
-          path: dist/
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -40,10 +34,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify build directory
-        run: ls -la dist
-
-      - name: Build (inject VITE_ secrets at build time)
+      - name: Build frontend
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
