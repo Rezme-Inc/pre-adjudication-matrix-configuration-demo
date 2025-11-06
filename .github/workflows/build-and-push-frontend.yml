@@ -31,7 +31,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           # Use the same naming pattern as CI.yml
-          name: frontend-build-${{ github.event.workflow_run.id }}
+          name: build-${{ github.event.workflow_run.head_sha }}
           path: dist/
 
       # (Optional) verify artifact contents
