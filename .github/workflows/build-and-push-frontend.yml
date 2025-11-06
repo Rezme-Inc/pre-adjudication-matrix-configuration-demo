@@ -12,33 +12,44 @@ permissions:
 
 jobs:
   build-and-push:
-    # Only run when the triggering CI workflow completed successfully on the main branch
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     concurrency:
       group: build-and-push-${{ github.ref }}
       cancel-in-progress: true
-
     env:
       IMAGE_BASE: ghcr.io/rezme-inc/pre-adj-frontend
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # ✅ Download the artifact built by CI
       - name: Download build artifact from CI
         uses: actions/download-artifact@v4
         with:
-          # Use the same naming pattern as CI.yml
-          name: build-${{ github.event.workflow_run.head_sha }}
+          name: build-${{ github.event.workflow_run.id }}
           path: dist/
 
-      # (Optional) verify artifact contents
-      - name: List downloaded files
-        run: ls -R dist/
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
 
-      # ✅ Build and optionally push Docker image
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify build directory
+        run: ls -la dist
+
+      - name: Build (inject VITE_ secrets at build time)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_BASE: "/pre-adjudication-matrix-configuration/"
+        run: npm run build
+
       - name: Build and (optionally) push runtime image
         uses: docker/build-push-action@v4
         with:
