@@ -45,13 +45,6 @@ jobs:
           # Build the static site; secrets are only available in this ephemeral runner
           npm run build
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build-${{ github.run_id }}
-          path: dist/
-          if-no-files-found: error
-
       - name: Build and (optionally) push runtime image
         uses: docker/build-push-action@v4
         with:
