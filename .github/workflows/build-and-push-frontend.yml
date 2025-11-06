@@ -21,7 +21,7 @@ jobs:
       cancel-in-progress: true
     env:
       # base image name; tags applied per-run
-      IMAGE_BASE: ghcr.io/${{ github.repository_owner }}/pre-adj-frontend
+      IMAGE_BASE: ghcr.io/rezme-inc/pre-adj-frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4

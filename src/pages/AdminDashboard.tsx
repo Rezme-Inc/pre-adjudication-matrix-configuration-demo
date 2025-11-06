@@ -17,18 +17,28 @@ type BatchRow = {
 }
 
 const OFFENSES = [
-  'Possession of Marijuana (Drug)',
-  'Possession of Opioids (Drug)',
-  'Destruction of Property (Property)',
-  'Driving While Intoxicated/DUI (Driving)',
-  'Distribution of Amphetamines (Drug)',
-  'Taxation Offense (Property)',
-  'Theft/Larceny (Property)',
-  'Robbery (Violent)',
-  'Resisting Arrest (Public Order)',
-  'Aggravated Assault (Violent)',
-  'Motor Vehicle Theft (Property)',
-  'Vehicular Manslaughter (Driving/Violent)'
+  // 'Possession of Marijuana (Drug)',
+  // 'Possession of Opioids (Drug)',
+  // 'Destruction of Property (Property)',
+  // 'Driving While Intoxicated/DUI (Driving)',
+  // 'Distribution of Amphetamines (Drug)',
+  // 'Taxation Offense (Property)',
+  // 'Theft/Larceny (Property)',
+  // 'Robbery (Violent)',
+  // 'Resisting Arrest (Public Order)',
+  // 'Aggravated Assault (Violent)',
+  // 'Motor Vehicle Theft (Property)',
+  // 'Vehicular Manslaughter (Driving/Violent)'
+  "Driving While Intoxicated (DWI)",
+  "Simple Assault",
+  "Disorderly Conduct",
+  "Forgery/Fraud",
+  "Distribution of Amphetamines",
+  "Burglary",
+  "Possession of Marijuana",
+  "Parole Violation",
+  "Voluntary Manslaughter",
+
 ]
 
 export default function AdminDashboard(): JSX.Element {

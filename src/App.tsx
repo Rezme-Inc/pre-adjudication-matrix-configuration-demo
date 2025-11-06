@@ -17,22 +17,31 @@ type OffenseResponse = {
 }
 
 const OFFENSES = [
-  'Possession of Marijuana (Drug)',
-  'Possession of Opioids (Drug)',
-  'Destruction of Property (Property)',
-  'Driving While Intoxicated/DUI (Driving)',
-  'Distribution of Amphetamines (Drug)',
-  'Taxation Offense (Property)',
-  'Theft/Larceny (Property)',
-  'Robbery (Violent)',
-  'Resisting Arrest (Public Order)',
-  'Aggravated Assault (Violent)',
-  'Motor Vehicle Theft (Property)',
-  'Vehicular Manslaughter (Driving/Violent)'
+  // 'Possession of Marijuana (Drug)',
+  // 'Possession of Opioids (Drug)',
+  // 'Destruction of Property (Property)',
+  // 'Driving While Intoxicated/DUI (Driving)',
+  // 'Distribution of Amphetamines (Drug)',
+  // 'Taxation Offense (Property)',
+  // 'Theft/Larceny (Property)',
+  // 'Robbery (Violent)',
+  // 'Resisting Arrest (Public Order)',
+  // 'Aggravated Assault (Violent)',
+  // 'Motor Vehicle Theft (Property)',
+  // 'Vehicular Manslaughter (Driving/Violent)'
+  "Driving While Intoxicated (DWI)",
+  "Simple Assault",
+  "Disorderly Conduct",
+  "Forgery/Fraud",
+  "Distribution of Amphetamines",
+  "Burglary",
+  "Possession of Marijuana",
+  "Parole Violation",
+  "Voluntary Manslaughter",
 ]
 
 // We'll run the user through the FIRST_N_OFFENSES (user asked for 12 offenses)
-const FIRST_N_OFFENSES = 12
+const FIRST_N_OFFENSES = 9
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null)
@@ -74,7 +83,7 @@ const App: React.FC = () => {
       <div className="container">
         <header>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>Agent: {user.firstName} {user.lastName}</div>
+            <div>User: {user.firstName} {user.lastName}</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowAdmin(true)}>Admin</button>
               <button onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</button>
@@ -104,7 +113,7 @@ const App: React.FC = () => {
     <div className="container">
       <header>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>Agent: {user.firstName} {user.lastName}</div>
+          <div>User: {user.firstName} {user.lastName}</div>
           <button onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Logout</button>
         </div>
       </header>
