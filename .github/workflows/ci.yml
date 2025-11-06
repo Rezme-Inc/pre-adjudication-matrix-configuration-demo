@@ -42,7 +42,7 @@ jobs:
       - name: Delete existing artifact
         run: gh api \
           -X DELETE \
-          "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" || true
+          "repos/${{ github.repository }}/actions/runs/${{ github.sha }}/artifacts" || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
