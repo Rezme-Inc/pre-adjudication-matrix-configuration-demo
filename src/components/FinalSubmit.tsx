@@ -86,7 +86,7 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
           <div className="form-group" style={{ marginBottom: 16 }}>
             <label htmlFor="interestEmail" style={{ fontWeight: 500, fontSize: '15px' }}>Email (optional)</label>
             <small style={{ display: 'block', marginTop: 4, marginBottom: 12, color: '#666', lineHeight: '1.5' }}>
-            If you'd like to request a follow-up regarding this demo or wish to discuss the application further, please enter your email address.      </small>
+            If you would like to receive the results and resources from this session and access to a customized tool for HPS participants please enter your email address.</small>
             <input
               id="interestEmail"
               type="email"
