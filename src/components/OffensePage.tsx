@@ -46,7 +46,7 @@ export const OffensePage: React.FC<{
     } else {
       // Fade in checkbox first, then slider
       if (lookBackYears === null) {
-        setLookBackYears(1)
+        setLookBackYears(0)
       }
       setLookbackEnabled(true)
       setTimeout(() => {
@@ -148,7 +148,7 @@ export const OffensePage: React.FC<{
   }
 
   // Convert years to slider value
-  const sliderValue = lookBackYears !== null ? lookBackYears : 1
+  const sliderValue = lookBackYears !== null ? lookBackYears : 0
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -222,7 +222,7 @@ export const OffensePage: React.FC<{
               if (checked) {
                 setLookbackEnabled(true)
                 if (lookBackYears === null) {
-                  setLookBackYears(1)
+                  setLookBackYears(0)
                 }
                 setTimeout(() => {
                   setShowSlider(true)
@@ -271,19 +271,19 @@ export const OffensePage: React.FC<{
         >
           <div className="flex items-center justify-center">
             <span className="text-[#0F206C] tabular-nums text-lg font-bold">
-              {lookBackYears ?? 1} {lookBackYears === 1 ? 'year' : 'years'}
+              {lookBackYears ?? 0} {lookBackYears === 1 ? 'year' : 'years'}
             </span>
           </div>
           <Slider
             value={[sliderValue]}
             onValueChange={handleSliderChange}
-            min={1}
+            min={0}
             max={10}
             step={0.1}
             className="w-full"
           />
           <div className="flex justify-between text-gray-400 text-xs">
-            <span>1</span>
+            <span>0</span>
             <span>10</span>
           </div>
         </div>
