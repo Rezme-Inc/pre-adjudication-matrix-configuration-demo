@@ -75,26 +75,50 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
       <p className="text-gray-600">Your {responses.length} offense assessments have been successfully recorded.</p>
 
       <form onSubmit={handleSubmit}>
-        <div className="form-group" style={{ marginBottom: 16 }}>
-          <label htmlFor="interestEmail">Email (optional)</label>
-          <input
-            id="interestEmail"
-            type="email"
-            value={interestEmail}
-            onChange={(e) => setInterestEmail(e.target.value)}
-            placeholder="your.email@example.com"
+        <div style={{
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          padding: '24px',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+          marginTop: '16px'
+        }}>
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label htmlFor="interestEmail" style={{ fontWeight: 500, fontSize: '15px' }}>Email (optional)</label>
+            <small style={{ display: 'block', marginTop: 4, marginBottom: 12, color: '#666', lineHeight: '1.5' }}>
+            If you'd like to request a follow-up regarding this demo or wish to discuss the application further, please enter your email address.      </small>
+            <input
+              id="interestEmail"
+              type="email"
+              value={interestEmail}
+              onChange={(e) => setInterestEmail(e.target.value)}
+              placeholder="your.email@example.com"
+              disabled={status.type === 'loading' || status.type === 'success'}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none',
+                backgroundColor: 'white'
+              }}
+              onFocus={(e) => e.target.style.border = '2px solid #0F206C'}
+              onBlur={(e) => e.target.style.border = '1px solid #d1d5db'}
+            />
+          </div>
+          <Button 
+            type="submit" 
             disabled={status.type === 'loading' || status.type === 'success'}
-          />
-          <small style={{ display: 'block', marginTop: 4, color: '#666' }}>
-          If you'd like to request a follow-up regarding this demo or wish to discuss the application further, please enter your email address.      </small>
+            className="w-full"
+          >
+            {status.type === 'loading' 
+              ? 'Submitting...' 
+              : status.type === 'success' 
+              ? 'Email Submitted ✓' 
+              : 'Submit Email'}
+          </Button>
         </div>
-        <Button 
-          type="submit" 
-          disabled={status.type === 'loading' || status.type === 'success'}
-          className="w-full"
-        >
-          {status.type === 'loading' ? 'Submitting...' : 'Submit Email'}
-        </Button>
       </form>
 
       <div className="bg-gray-50 rounded-lg -mx-6">
