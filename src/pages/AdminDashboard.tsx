@@ -170,67 +170,71 @@ export default function AdminDashboard(): JSX.Element {
   }, [batches])
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Admin — Submissions (live)</h2>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <div style={{ marginBottom: 16 }}>
-        <strong>Recent batches:</strong> {batches.length} (live updates enabled)
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin — Submissions (live)</h2>
+        {error && <div className="text-red-600 bg-red-50 p-3 rounded-md border border-red-200 mb-4">{error}</div>}
+        <div className="text-gray-600 mb-6">
+          <strong>Recent batches:</strong> {batches.length} (live updates enabled)
+        </div>
       </div>
 
-      <section style={{ marginBottom: 24 }}>
-        <h3>Aggregated statistics by offense</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left', borderBottom: '1px solid #ccc' }}>Offense</th>
-              <th style={{ borderBottom: '1px solid #ccc' }}>Always Eligible %</th>
-              <th style={{ borderBottom: '1px solid #ccc' }}>Job Dependent %</th>
-              <th style={{ borderBottom: '1px solid #ccc' }}>Always Review %</th>
-              <th style={{ borderBottom: '1px solid #ccc' }}>Mean yrs</th>
-              <th style={{ borderBottom: '1px solid #ccc' }}>Median yrs</th>
-              <th style={{ borderBottom: '1px solid #ccc' }}>Mode yrs</th>
-              <th style={{ borderBottom: '1px solid #ccc' }}>Votes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {OFFENSES.map((off) => {
-              const row = aggregate[off]
-              return (
-                <tr key={off}>
-                  <td style={{ padding: '8px 4px' }}>{off}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    {row ? <span className="pill pill-always-eligible">{row.pct.Green.toFixed(1)}%</span> : '—'}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    {row ? <span className="pill pill-job-dependent">{row.pct.Yellow.toFixed(1)}%</span> : '—'}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    {row ? <span className="pill pill-always-review">{row.pct.Red.toFixed(1)}%</span> : '—'}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>{row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}</td>
-                  <td style={{ textAlign: 'center' }}>{row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}</td>
-                  <td style={{ textAlign: 'center' }}>{row && row.modeYears !== null ? String(row.modeYears) : '—'}</td>
-                  <td style={{ textAlign: 'center' }}>{row ? row.total : 0}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <section className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900">Aggregated statistics by offense</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-gray-300">
+                <th className="text-left py-2 px-2 text-sm font-semibold text-gray-700">Offense</th>
+                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Always Eligible %</th>
+                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Job Dependent %</th>
+                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Always Review %</th>
+                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Mean yrs</th>
+                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Median yrs</th>
+                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Mode yrs</th>
+                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Votes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {OFFENSES.map((off) => {
+                const row = aggregate[off]
+                return (
+                  <tr key={off} className="border-b border-gray-200 hover:bg-gray-100">
+                    <td className="py-2 px-2 text-sm text-gray-900">{off}</td>
+                    <td className="text-center py-2 px-2">
+                      {row ? <span className="pill pill-always-eligible">{row.pct.Green.toFixed(1)}%</span> : '—'}
+                    </td>
+                    <td className="text-center py-2 px-2">
+                      {row ? <span className="pill pill-job-dependent">{row.pct.Yellow.toFixed(1)}%</span> : '—'}
+                    </td>
+                    <td className="text-center py-2 px-2">
+                      {row ? <span className="pill pill-always-review">{row.pct.Red.toFixed(1)}%</span> : '—'}
+                    </td>
+                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}</td>
+                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}</td>
+                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row && row.modeYears !== null ? String(row.modeYears) : '—'}</td>
+                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row ? row.total : 0}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section>
-        <h3>Most recent batches</h3>
+      <section className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900">Most recent batches</h3>
         {loading ? (
-          <div>Loading...</div>
+          <div className="text-gray-600">Loading...</div>
         ) : (
-          <ul>
+          <ul className="space-y-3">
             {batches.map((b) => (
-              <li key={b.batch_id} style={{ marginBottom: 8 }}>
-                <div>
-                  <strong>{b.submitted_by_name ?? 'Unknown'}</strong> —{' '}
-                  <small>{new Date(b.submitted_at ?? '').toLocaleString()}</small>
+              <li key={b.batch_id} className="bg-white p-3 rounded-md border border-gray-200">
+                <div className="mb-1">
+                  <strong className="text-gray-900">{b.submitted_by_name ?? 'Unknown'}</strong> —{' '}
+                  <small className="text-gray-500">{new Date(b.submitted_at ?? '').toLocaleString()}</small>
                 </div>
-                <div style={{ fontSize: 13, color: '#333' }}>
+                <div className="text-sm text-gray-600">
                   {((b.responses || []) as DecisionRow[])
                     .slice(0, 6)
                     .map((r) => (
