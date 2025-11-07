@@ -7,6 +7,8 @@ import { FinalSubmit } from './components/FinalSubmit'
 import AdminDashboard from './pages/AdminDashboard'
 import { Button } from './components/ui/button'
 import logoImage from './assets/image (1).png'
+import footerImage from './assets/c6e44e69-4cca-4741-b366-9f882b52ec8a.png'
+import envoyLogo from './assets/08a0f5_fc930def25264a5795c1219c8cfd69ba~mv2.gif'
 
 type User = {
   username: string
@@ -46,92 +48,107 @@ const OFFENSES = [
 // We'll run the user through the FIRST_N_OFFENSES (user asked for 12 offenses)
 const FIRST_N_OFFENSES = 9
 
-const Header: React.FC<{ onMenuClick: () => void; onInfoClick: () => void }> = ({ onMenuClick, onInfoClick }) => {
+const Header: React.FC<{ onMenuClick: () => void; onInfoClick: () => void; showButtons?: boolean }> = ({ onMenuClick, onInfoClick, showButtons = true }) => {
   return (
-    <header className="bg-white px-6 py-8 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-      <button
-        onClick={onMenuClick}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Menu"
-      >
-        <Menu className="w-6 h-6 text-gray-700" />
-      </button>
-      <button
-        onClick={onInfoClick}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Info"
-      >
-        <Info className="w-6 h-6 text-gray-700" />
-      </button>
+    <header className="bg-white px-6 py-8 flex justify-between items-center sticky top-0 z-50 shadow-sm relative">
+      {showButtons ? (
+        <>
+          <button
+            onClick={onMenuClick}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Menu"
+          >
+            <Menu className="w-6 h-6 text-gray-700" />
+          </button>
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+            <img src={envoyLogo} alt="Envoy Logo" className="h-8" />
+          </div>
+          <button
+            onClick={onInfoClick}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Info"
+          >
+            <Info className="w-6 h-6 text-gray-700" />
+          </button>
+        </>
+      ) : (
+        <>
+          <div className="flex-shrink-0 w-10"></div>
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+            <img src={envoyLogo} alt="Envoy Logo" className="h-8" />
+          </div>
+          <div className="flex-shrink-0 w-10"></div>
+        </>
+      )}
     </header>
   )
 }
 
-const MenuPanel: React.FC<{ 
-  isOpen: boolean
-  onClose: () => void
-  user: User | null
-  onSignOut: () => void
-}> = ({ isOpen, onClose, user, onSignOut }) => {
-  if (!isOpen) return null
-
+const Footer: React.FC = () => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
-        onClick={onClose}
-      />
-      {/* Full Screen Modal */}
-      <div className="relative bg-white w-full max-w-md mx-4 rounded-lg shadow-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slide-in-right">
-        {/* Header */}
-        <div className="flex justify-between items-center px-6 py-5 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Menu</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
+    <footer className="bg-white pt-4 pb-4 px-6 flex items-center justify-center gap-2">
+      <span className="text-sm text-gray-600">Powered by</span>
+      <img src={footerImage} alt="Powered by" className="h-10 align-middle" />
+    </footer>
+  )
+}
 
-        {/* Content */}
-        <div className="flex-1 px-6 py-6 overflow-y-auto">
-          {/* User Section */}
-          <div className="mb-6">
-            <label className="text-sm text-gray-500 block mb-2">User</label>
-            <p className="text-base text-gray-900">
-              {user ? user.username : 'Guest'}
-            </p>
-          </div>
-
-          {/* Email Section */}
-          <div className="mb-6">
-            <label className="text-sm text-gray-500 block mb-2">E-mail</label>
-            <p className="text-base text-gray-900 break-all">
-              {user ? `${user.username.toLowerCase()}@example.com` : 'guest@example.com'}
-            </p>
-          </div>
-
-          {/* About Section */}
-          <div className="mb-6">
-            <label className="text-sm text-gray-500 block mb-2">About</label>
-            <button className="text-base text-gray-900 hover:text-gray-700 transition-colors">
-              About
+const MenuScreen: React.FC<{ 
+  user: User | null
+  onBack: () => void
+  onSignOut: () => void
+  onAboutClick: () => void
+}> = ({ user, onBack, onSignOut, onAboutClick }) => {
+  return (
+    <div className="bg-white min-h-screen flex flex-col">
+      <Header onMenuClick={() => {}} onInfoClick={() => {}} />
+      <div className="flex items-center justify-center p-6 flex-1 mb-8">
+        <div className="w-full max-w-md p-8">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Menu</h2>
+            <button
+              onClick={onBack}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6 text-gray-600" />
             </button>
           </div>
-        </div>
 
-        {/* Footer with Sign Out */}
-        <div className="px-6 py-6 border-t border-gray-200">
-          <button
-            onClick={onSignOut}
-            className="w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-900 hover:bg-gray-50 transition-colors"
-          >
-            Sign Out
-          </button>
+          {/* Content */}
+          <div className="space-y-6 mb-8">
+            {/* User Section */}
+            <div>
+              <label className="text-sm text-gray-500 block mb-2">User</label>
+              <p className="text-base text-gray-900">
+                {user ? user.username : 'Guest'}
+              </p>
+            </div>
+
+            {/* About Section */}
+            <div>
+              <button 
+                onClick={onAboutClick}
+                className="text-base font-bold text-gray-900 hover:text-gray-700 transition-colors cursor-pointer underline hover:no-underline"
+              >
+                About
+              </button>
+            </div>
+          </div>
+
+          {/* Footer with Sign Out */}
+          <div className="pt-6">
+            <Button
+              onClick={onSignOut}
+              variant="outline"
+              className="w-full"
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
+        <Footer />
       </div>
     </div>
   )
@@ -145,7 +162,7 @@ const MainApp: React.FC = () => {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
+  const [showMenuScreen, setShowMenuScreen] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
 
   const start = (username: string) => {
@@ -208,20 +225,83 @@ const MainApp: React.FC = () => {
     setResponses([])
     setCurrentIndex(0)
     setIsTransitioning(false)
-    setShowMenu(false)
+    setShowMenuScreen(false)
+  }
+
+  const handleMenuClick = () => {
+    setIsPageTransitioning(true)
+    setTimeout(() => {
+      setShowMenuScreen(true)
+      setTimeout(() => {
+        setIsPageTransitioning(false)
+      }, 50)
+    }, 400)
+  }
+
+  const handleBackFromMenu = () => {
+    setIsPageTransitioning(true)
+    setTimeout(() => {
+      setShowMenuScreen(false)
+      setTimeout(() => {
+        setIsPageTransitioning(false)
+      }, 50)
+    }, 400)
+  }
+
+  const handleAboutClick = () => {
+    setIsPageTransitioning(true)
+    setTimeout(() => {
+      setShowMenuScreen(false)
+      setTimeout(() => {
+        setShowInstructions(true)
+        // Small delay before fade in
+        setTimeout(() => {
+          setIsPageTransitioning(false)
+        }, 50)
+      }, 50)
+    }, 400)
+  }
+
+  const handleInfoClick = () => {
+    // If already on instructions screen, do nothing
+    if (showInstructions) return
+    
+    setIsPageTransitioning(true)
+    setTimeout(() => {
+      if (showMenuScreen) {
+        setShowMenuScreen(false)
+      }
+      setTimeout(() => {
+        setShowInstructions(true)
+        setTimeout(() => {
+          setIsPageTransitioning(false)
+        }, 50)
+      }, 50)
+    }, 400)
+  }
+
+  if (showMenuScreen) {
+    return (
+      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
+        isPageTransitioning 
+          ? 'opacity-0 -translate-x-8' 
+          : 'opacity-100 translate-x-0'
+      }`}>
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+        />
+      </div>
+    )
   }
 
   if (!user) {
     return (
       <div className="bg-white min-h-screen">
-        <Header onMenuClick={() => setShowMenu(!showMenu)} onInfoClick={() => setShowInfo(!showInfo)} />
-        <MenuPanel 
-          isOpen={showMenu} 
-          onClose={() => setShowMenu(false)} 
-          user={null}
-          onSignOut={handleSignOut}
-        />
-        <div className="flex items-center justify-center p-6">
+        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} showButtons={false} />
+        <div className="flex items-center justify-center p-6 mb-8">
           <div className={`bg-white p-8 w-full max-w-md transition-all duration-[400ms] ease-in-out ${
             isPageTransitioning 
               ? 'opacity-0 -translate-x-8' 
@@ -239,20 +319,14 @@ const MainApp: React.FC = () => {
 
   if (showInstructions) {
     return (
-      <div className="bg-white min-h-screen">
-        <Header onMenuClick={() => setShowMenu(!showMenu)} onInfoClick={() => setShowInfo(!showInfo)} />
-        <MenuPanel 
-          isOpen={showMenu} 
-          onClose={() => setShowMenu(false)} 
-          user={user}
-          onSignOut={handleSignOut}
-        />
-        <div className="flex items-center justify-center p-6">
-          <div className={`bg-white w-full max-w-3xl p-8 transition-all duration-[400ms] ease-in-out ${
-            isPageTransitioning 
-              ? 'opacity-0 -translate-x-8' 
-              : 'opacity-100 translate-x-0'
-          }`}>
+      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
+        isPageTransitioning 
+          ? 'opacity-0 -translate-x-8' 
+          : 'opacity-100 translate-x-0'
+      }`}>
+        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} showButtons={false} />
+        <div className="flex items-center justify-center p-6 flex-1 mb-8">
+          <div className="bg-white w-full max-w-3xl p-8">
             <h1 className="text-3xl font-bold mb-10 text-gray-900 text-center">Instructions</h1>
             
             <div className="space-y-6 mb-10">
@@ -317,12 +391,10 @@ const MainApp: React.FC = () => {
               >
                 Continue
               </Button>
-              <div className="text-center text-gray-500 text-sm">
-                Powered by Rezme
-              </div>
             </div>
           </div>
         </div>
+        <Footer />
       </div>
     )
   }
@@ -330,15 +402,13 @@ const MainApp: React.FC = () => {
   // If we've collected FIRST_N_OFFENSES responses, show final submit
   if (responses.length >= FIRST_N_OFFENSES) {
     return (
-      <div className="bg-white min-h-screen">
-        <Header onMenuClick={() => setShowMenu(!showMenu)} onInfoClick={() => setShowInfo(!showInfo)} />
-        <MenuPanel 
-          isOpen={showMenu} 
-          onClose={() => setShowMenu(false)} 
-          user={user}
-          onSignOut={handleSignOut}
-        />
-        <div className="max-w-4xl mx-auto p-6">
+      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
+        isPageTransitioning 
+          ? 'opacity-0 -translate-x-8' 
+          : 'opacity-100 translate-x-0'
+      }`}>
+        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
+        <div className="max-w-4xl mx-auto p-6 flex-1 mb-8">
           <div className="bg-white p-4 mb-6">
             <div className="flex justify-between items-center">
               <div className="text-gray-900 font-medium">User: {user.username}</div>
@@ -362,21 +432,20 @@ const MainApp: React.FC = () => {
             </div>
           )}
         </div>
+        <Footer />
       </div>
     )
   }
 
   const offense = OFFENSES[currentIndex]
   return (
-    <div className="bg-white min-h-screen">
-      <Header onMenuClick={() => setShowMenu(!showMenu)} onInfoClick={() => setShowInfo(!showInfo)} />
-      <MenuPanel 
-        isOpen={showMenu} 
-        onClose={() => setShowMenu(false)} 
-        user={user}
-        onSignOut={handleSignOut}
-      />
-      <div className="flex items-center justify-center p-6">
+    <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
+      isPageTransitioning 
+        ? 'opacity-0 -translate-x-8' 
+        : 'opacity-100 translate-x-0'
+    }`}>
+      <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
+      <div className="flex items-center justify-center p-6 flex-1 mb-8">
         <div className={`bg-white w-full max-w-2xl p-8 transition-all duration-300 ease-in-out ${
           isTransitioning 
             ? 'opacity-0 -translate-x-8' 
@@ -403,6 +472,7 @@ const MainApp: React.FC = () => {
         />
         </div>
       </div>
+        <Footer />
     </div>
   )
 }
