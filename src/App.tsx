@@ -86,9 +86,9 @@ const Header: React.FC<{ onMenuClick: () => void; onInfoClick: () => void; showB
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-white pt-4 pb-4 px-6 flex items-center justify-center gap-2">
-      <span className="text-sm text-gray-600">Powered by</span>
-      <img src={footerImage} alt="Powered by" className="h-10 align-middle" />
+    <footer className="bg-white pt-4 pb-4 px-6 flex items-center justify-center gap-2 w-full">
+      <span className="text-sm text-gray-600 whitespace-nowrap">Powered by</span>
+      <img src={footerImage} alt="Powered by" className="h-10 align-middle flex-shrink-0" />
     </footer>
   )
 }
@@ -148,8 +148,8 @@ const MenuScreen: React.FC<{
             </Button>
           </div>
         </div>
-        <Footer />
       </div>
+      <Footer />
     </div>
   )
 }
@@ -448,12 +448,6 @@ const MainApp: React.FC = () => {
             ? 'opacity-0 -translate-x-8' 
             : 'opacity-100 translate-x-0'
         }`}>
-          <div className="mb-6">
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0); setIsTransitioning(false) }}>Logout</Button>
-            </div>
-          </div>
-
         <h1 className="text-2xl font-bold mb-6 text-gray-900">Offense {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
         <p className="text-gray-600 mb-10">Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
 
