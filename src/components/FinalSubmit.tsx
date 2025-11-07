@@ -62,17 +62,33 @@ export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string
     <div className="max-w-3xl space-y-6">
       <p className="text-gray-600">You're about to submit the following {responses.length} offense assessments. Please provide one or more recipient emails to receive the summary.</p>
 
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold mb-3 text-gray-900">Summary</h3>
-        <ol className="space-y-2 list-decimal list-inside">
-          {responses.map((r, i) => (
-            <li key={i} className="text-gray-700">
-              <strong className="text-gray-900">{r.offense}</strong> — {r.decision} 
-              {r.lookBackYears !== null && ` (look-back: ${r.lookBackYears} ${r.lookBackYears === 1 ? 'yr' : 'yrs'})`}
-              {r.notes && ` — ${r.notes}`}
-            </li>
-          ))}
-        </ol>
+      <div className="bg-gray-50 rounded-lg -mx-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900 px-6 pt-4">Summary</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-gray-300">
+                <th className="text-center py-2 pl-6 pr-3 text-sm font-semibold text-gray-700">Criminal Offense</th>
+                <th className="text-center py-2 px-3 text-sm font-semibold text-gray-700">Review Option</th>
+                <th className="text-center py-2 px-3 text-sm font-semibold text-gray-700">Lookback Period</th>
+                <th className="text-center py-2 px-3 pr-6 text-sm font-semibold text-gray-700">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {responses.map((r, i) => (
+                <tr key={i} className="border-b border-gray-200 hover:bg-gray-100">
+                  <td className="text-center py-2 pl-6 pr-3 text-sm text-gray-900">{r.offense}</td>
+                  <td className="text-center py-2 px-3 text-sm text-gray-700">{r.decision}</td>
+                  <td className="text-center py-2 px-3 text-sm text-gray-700">
+                    {r.lookBackYears !== null ? `${r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}` : 'N/A'}
+                  </td>
+                  <td className="text-center py-2 px-3 pr-6 text-sm text-gray-600">{r.notes || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="pb-4"></div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
