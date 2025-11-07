@@ -49,29 +49,49 @@ const App: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [responses, setResponses] = useState<OffenseResponse[]>([])
   const [showAdmin, setShowAdmin] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const start = (firstName: string, lastName: string) => {
     setUser({ firstName, lastName })
     setCurrentIndex(0)
     setResponses([])
+    setIsTransitioning(false)
   }
 
   const handleNext = (resp: OffenseResponse) => {
     setResponses((r) => [...r, resp])
-    const next = currentIndex + 1
-    setCurrentIndex(next)
+    // Start fade out animation
+    setIsTransitioning(true)
+    // After fade out, move to next offense and fade in
+    setTimeout(() => {
+      const next = currentIndex + 1
+      setCurrentIndex(next)
+      // Small delay before fade in
+      setTimeout(() => {
+        setIsTransitioning(false)
+      }, 50)
+    }, 300) // Match the fade-out duration
   }
 
   const handleBack = () => {
     if (currentIndex === 0) return
-    setResponses((r) => r.slice(0, -1))
-    setCurrentIndex((i) => i - 1)
+    // Start fade out animation
+    setIsTransitioning(true)
+    // After fade out, move to previous offense and fade in
+    setTimeout(() => {
+      setResponses((r) => r.slice(0, -1))
+      setCurrentIndex((i) => i - 1)
+      // Small delay before fade in
+      setTimeout(() => {
+        setIsTransitioning(false)
+      }, 50)
+    }, 300) // Match the fade-out duration
   }
 
   if (!user) {
     return (
       <div className="bg-white min-h-screen flex items-center justify-center p-6">
-        <div className="bg-white rounded-lg shadow-sm p-8 w-full max-w-md">
+        <div className="bg-white p-8 w-full max-w-md">
           <h1 className="text-2xl font-bold mb-2 text-gray-900">Pre-Adjudication - Quick Entry</h1>
           <p className="text-gray-600 mb-6">Please enter your name to begin. No login required.</p>
           <SimpleNameForm onStart={start} />
@@ -85,7 +105,7 @@ const App: React.FC = () => {
     return (
       <div className="bg-white min-h-screen">
         <div className="max-w-4xl mx-auto p-6">
-          <header className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <header className="bg-white p-4 mb-6">
             <div className="flex justify-between items-center">
               <div className="text-gray-900 font-medium">User: {user.firstName} {user.lastName}</div>
               <div className="flex gap-2">
@@ -95,7 +115,7 @@ const App: React.FC = () => {
             </div>
           </header>
           {showAdmin ? (
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white p-6">
               <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
                 <Button variant="outline" onClick={() => setShowAdmin(false)}>Back</Button>
@@ -103,7 +123,7 @@ const App: React.FC = () => {
               <AdminDashboard />
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white p-6">
               <h1 className="text-2xl font-bold mb-6 text-gray-900">Final Submission</h1>
               <FinalSubmit user={user} responses={responses} />
             </div>
@@ -116,11 +136,13 @@ const App: React.FC = () => {
   const offense = OFFENSES[currentIndex]
   return (
     <div className="bg-white min-h-screen flex items-center justify-center p-6">
-      <div className="bg-white rounded-lg shadow-sm w-full max-w-2xl p-8">
+      <div className={`bg-white w-full max-w-2xl p-8 transition-opacity duration-300 ${
+        isTransitioning ? 'opacity-0' : 'opacity-100'
+      }`}>
         <header className="mb-6">
           <div className="flex justify-between items-center">
             <div className="text-gray-900 font-medium">User: {user.firstName} {user.lastName}</div>
-            <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Logout</Button>
+            <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0); setIsTransitioning(false) }}>Logout</Button>
           </div>
         </header>
 
@@ -128,6 +150,7 @@ const App: React.FC = () => {
         <p className="text-gray-600 mb-6">Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
 
         <OffensePage
+          key={currentIndex} // Force remount to reset state to "Always Eligible"
           offense={offense}
           index={currentIndex}
           total={FIRST_N_OFFENSES}

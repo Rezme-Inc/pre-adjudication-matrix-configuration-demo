@@ -12,14 +12,9 @@ body, html {
   border: none !important;
 }
 
-/* Remove borders from all white card containers */
-.bg-white {
+/* Remove borders from all white card containers, but not from option boxes */
+.bg-white:not([class*="border-"]) {
   border: none !important;
-}
-
-/* Remove borders from all divs that might have default borders */
-div {
-  border-width: 0 !important;
 }
 
 .pill {
