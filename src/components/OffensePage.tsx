@@ -46,7 +46,7 @@ export const OffensePage: React.FC<{
     } else {
       // Fade in checkbox first, then slider
       if (lookBackYears === null) {
-        setLookBackYears(0)
+        setLookBackYears(1)
       }
       setLookbackEnabled(true)
       setTimeout(() => {
@@ -58,7 +58,8 @@ export const OffensePage: React.FC<{
   // Handle slider change - round to nearest integer for smooth movement but integer locking
   const handleSliderChange = (values: number[]) => {
     const rounded = Math.round(values[0])
-    setLookBackYears(rounded)
+    // Ensure minimum value is 1
+    setLookBackYears(Math.max(1, rounded))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,7 +149,7 @@ export const OffensePage: React.FC<{
   }
 
   // Convert years to slider value
-  const sliderValue = lookBackYears !== null ? lookBackYears : 0
+  const sliderValue = lookBackYears !== null ? lookBackYears : 1
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -183,7 +184,7 @@ export const OffensePage: React.FC<{
             const selectedStyles = {
               'display': 'border-gray-900 bg-blue-50',
               'dispute': 'border-gray-900 bg-purple-50',
-              'review': 'border-gray-900 bg-orange-50'
+              'review': ' bg-amber-50'
             }
             return (
             <label
@@ -222,7 +223,7 @@ export const OffensePage: React.FC<{
               if (checked) {
                 setLookbackEnabled(true)
                 if (lookBackYears === null) {
-                  setLookBackYears(0)
+                  setLookBackYears(1)
                 }
                 setTimeout(() => {
                   setShowSlider(true)
@@ -271,19 +272,19 @@ export const OffensePage: React.FC<{
         >
           <div className="flex items-center justify-center">
             <span className="text-[#0F206C] tabular-nums text-lg font-bold">
-              {lookBackYears ?? 0} {lookBackYears === 1 ? 'year' : 'years'}
+              {lookBackYears ?? 1} {lookBackYears === 1 ? 'year' : 'years'}
             </span>
           </div>
           <Slider
             value={[sliderValue]}
             onValueChange={handleSliderChange}
-            min={0}
+            min={1}
             max={10}
             step={0.1}
             className="w-full"
           />
           <div className="flex justify-between text-gray-400 text-xs">
-            <span>0</span>
+            <span>1</span>
             <span>10</span>
           </div>
         </div>

@@ -87,16 +87,24 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
               </tr>
             </thead>
             <tbody>
-              {responses.map((r, i) => (
-                <tr key={i} className="border-b border-gray-200 hover:bg-gray-100">
-                  <td className="text-center py-2 pl-6 pr-3 text-sm text-gray-900">{r.offense}</td>
-                  <td className="text-center py-2 px-3 text-sm text-gray-700">{r.decision}</td>
-                  <td className="text-center py-2 px-3 text-sm text-gray-700">
-                    {r.lookBackYears !== null ? `${r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}` : 'N/A'}
-                  </td>
-                  <td className="text-center py-2 px-3 pr-6 text-sm text-gray-600">{r.notes || '—'}</td>
-                </tr>
-              ))}
+              {responses.map((r, i) => {
+                const getDecisionBgColor = (decision: string) => {
+                  if (decision === 'Always Review') return 'bg-amber-50'
+                  if (decision === 'Job Dependent') return 'bg-purple-50'
+                  if (decision === 'Always Eligible') return 'bg-blue-50'
+                  return ''
+                }
+                return (
+                  <tr key={i} className="border-b border-gray-200 hover:bg-gray-100">
+                    <td className="text-center py-2 pl-6 pr-3 text-sm text-gray-900">{r.offense}</td>
+                    <td className={`text-center py-2 px-3 text-sm text-gray-700 ${getDecisionBgColor(r.decision)}`}>{r.decision}</td>
+                    <td className="text-center py-2 px-3 text-sm text-gray-700">
+                      {r.lookBackYears !== null ? `${r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}` : 'N/A'}
+                    </td>
+                    <td className="text-center py-2 px-3 pr-6 text-sm text-gray-600">{r.notes || '—'}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
