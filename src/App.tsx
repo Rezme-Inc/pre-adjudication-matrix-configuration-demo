@@ -6,6 +6,7 @@ import { OffensePage } from './components/OffensePage'
 import { FinalSubmit } from './components/FinalSubmit'
 import AdminDashboard from './pages/AdminDashboard'
 import { Button } from './components/ui/button'
+import { supabase } from './supabaseClient'
 import logoImage from './assets/image (1).png'
 import footerImage from './assets/c6e44e69-4cca-4741-b366-9f882b52ec8a.png'
 import envoyLogo from './assets/08a0f5_fc930def25264a5795c1219c8cfd69ba~mv2.gif'
@@ -35,10 +36,10 @@ const OFFENSES = [
   // 'Motor Vehicle Theft (Property)',
   // 'Vehicular Manslaughter (Driving/Violent)'
   "Driving While Intoxicated (DWI)",
-  "Simple Assault",
+  "Assault",
   "Disorderly Conduct",
   "Forgery/Fraud",
-  "Distribution of Amphetamines",
+  "Distribution of a Controlled Substance",
   "Burglary",
   "Possession of Marijuana",
   "Parole Violation",
@@ -193,6 +194,42 @@ const MainApp: React.FC = () => {
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
   const [showMenuScreen, setShowMenuScreen] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
+  const [landingEmail, setLandingEmail] = useState('')
+  const [emailStatus, setEmailStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
+
+  const handleLandingEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const trimmed = landingEmail.trim()
+    if (!trimmed) return
+    
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!re.test(trimmed)) {
+      setEmailStatus({ type: 'error', message: 'Please enter a valid email address' })
+      return
+    }
+    
+    setEmailStatus({ type: 'loading' })
+    
+    try {
+      const { error } = await supabase
+        .from('interest_emails')
+        .insert({
+          email: trimmed,
+          submitted_at: new Date().toISOString()
+        })
+      
+      if (error) throw error
+      
+      setEmailStatus({ type: 'success', message: 'Email submitted successfully!' })
+    } catch (err) {
+      console.error('Email submission error:', err)
+      setEmailStatus({ 
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to submit. Please try again.'
+      })
+    }
+  }
 
   const start = (username: string) => {
     setIsPageTransitioning(true)
@@ -308,9 +345,68 @@ const MainApp: React.FC = () => {
               : 'opacity-100 translate-x-0'
           }`}>
             <img src={logoImage} alt="Human Potential SUMMIT" className="mb-8" />
-            <h1 className="text-2xl font-bold mb-2 text-gray-900">Flipping the Switch: User Demo</h1>
+            <h1 className="text-2xl font-bold mb-2 text-gray-900">Flipping the Switch: Consensus Building Tool</h1>
             <p className="text-gray-600 mb-10">Please enter a username to begin. No login required.</p>
             <SimpleNameForm onStart={start} />
+            
+            {/* Email Collection Section */}
+            <form onSubmit={handleLandingEmailSubmit} className="mt-16">
+              <div style={{
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '24px',
+                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+              }}>
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label htmlFor="landingEmail" style={{ fontWeight: 500, fontSize: '15px' }}>Email (optional)</label>
+                  <small style={{ display: 'block', marginTop: 4, marginBottom: 12, color: '#666', lineHeight: '1.5' }}>
+                    If you would like to receive the results and resources from this session and access to a customized tool for HPS participants please enter your email address.
+                  </small>
+                  <input
+                    id="landingEmail"
+                    type="email"
+                    value={landingEmail}
+                    onChange={(e) => setLandingEmail(e.target.value)}
+                    placeholder="your.email@example.com"
+                    disabled={emailStatus.type === 'loading' || emailStatus.type === 'success'}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: 'white'
+                    }}
+                    onFocus={(e) => e.target.style.border = '2px solid #0F206C'}
+                    onBlur={(e) => e.target.style.border = '1px solid #d1d5db'}
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  disabled={emailStatus.type === 'loading' || emailStatus.type === 'success'}
+                  className="w-full"
+                >
+                  {emailStatus.type === 'loading' 
+                    ? 'Submitting...' 
+                    : emailStatus.type === 'success' 
+                    ? 'Email Submitted ✓' 
+                    : 'Submit Email'}
+                </Button>
+                {emailStatus.message && (
+                  <p className={`mt-3 text-sm ${
+                    emailStatus.type === 'error' 
+                      ? 'text-red-600' 
+                      : emailStatus.type === 'success' 
+                      ? 'text-green-600'
+                      : 'text-gray-600'
+                  }`}>
+                    {emailStatus.message}
+                  </p>
+                )}
+              </div>
+            </form>
           </div>
         </div>
         <MenuScreen 
@@ -341,7 +437,7 @@ const MainApp: React.FC = () => {
             <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
               <h2 className="text-xl font-bold mb-4 text-gray-900">Always Eligible</h2>
               <p className="text-gray-700 mb-4 leading-relaxed">
-                The conviction is unrelated to positions at our company. Candidates with this conviction will not be flagged for further review. When to use: The offense has no connection to job duties or compliance requirements.
+                The conviction is unrelated to positions at our company. Candidates with this conviction will not be flagged for further review.
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-md px-4 py-2 inline-block">
                 <p className="text-gray-800 font-bold text-sm">Lookback Period: Not required</p>
@@ -351,11 +447,8 @@ const MainApp: React.FC = () => {
             {/* Job Dependent */}
             <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
               <h2 className="text-xl font-bold mb-4 text-gray-900">Job Dependent</h2>
-              <p className="text-gray-700 mb-3 leading-relaxed">
-                This conviction may be relevant to some jobs at our company, but would not be relevant to others. The conviction will be subject to further review if the candidate is applying for a position with duties or risks relevant to the conviction.
-              </p>
               <p className="text-gray-700 mb-4 leading-relaxed">
-                When to use: If the relevance of the conviction depends on the job and you have (or plan to) pre-assess which job categories at your organization are specifically relevant to which conviction categories.
+                This conviction may be relevant to some jobs at our company, but would not be relevant to others. The conviction will be subject to further review if the candidate is applying for a position with duties or risks relevant to the conviction.
               </p>
               <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-2 inline-block">
                 <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
@@ -365,11 +458,8 @@ const MainApp: React.FC = () => {
             {/* Always Review */}
             <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
               <h2 className="text-xl font-bold mb-4 text-gray-900">Always Review</h2>
-              <p className="text-gray-700 mb-3 leading-relaxed">
-                The conviction may be relevant to all job categories and requires a full review and individualized assessment before a hiring decision is made.
-              </p>
               <p className="text-gray-700 mb-4 leading-relaxed">
-                When to use: The conviction may be broadly job relevant or your company has not developed a more nuanced process to assess the conviction based on specific job categories.
+                The conviction may be relevant to all job categories and requires a full review and individualized assessment before a hiring decision is made.
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-2 inline-block">
                 <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
@@ -469,7 +559,7 @@ const MainApp: React.FC = () => {
             ? 'opacity-0 -translate-x-8' 
             : 'opacity-100 translate-x-0'
         }`}>
-        <h1 className="text-2xl font-bold mb-6 text-gray-900">Offense {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
+        <h1 className="text-2xl font-bold mb-6 text-gray-900">Conviction {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
         <p className="text-gray-600 mb-10">Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
 
         <OffensePage
