@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
 import { OffensePage } from './components/OffensePage'
 import { FinalSubmit } from './components/FinalSubmit'
@@ -43,11 +44,10 @@ const OFFENSES = [
 // We'll run the user through the FIRST_N_OFFENSES (user asked for 12 offenses)
 const FIRST_N_OFFENSES = 9
 
-const App: React.FC = () => {
+const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [responses, setResponses] = useState<OffenseResponse[]>([])
-  const [showAdmin, setShowAdmin] = useState(false)
 
   const start = (firstName: string, lastName: string) => {
     setUser({ firstName, lastName })
@@ -85,25 +85,12 @@ const App: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>User: {user.firstName} {user.lastName}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowAdmin(true)}>Admin</button>
               <button onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</button>
             </div>
           </div>
         </header>
-        {showAdmin ? (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h1>Admin Dashboard</h1>
-              <button onClick={() => setShowAdmin(false)}>Back</button>
-            </div>
-            <AdminDashboard />
-          </div>
-        ) : (
-          <>
-            <h1>Final Submission</h1>
-            <FinalSubmit user={user} responses={responses} />
-          </>
-        )}
+        <h1>Final Submission</h1>
+        <FinalSubmit user={user} responses={responses} />
       </div>
     )
   }
@@ -129,6 +116,17 @@ const App: React.FC = () => {
         onNext={handleNext}
       />
     </div>
+  )
+}
+
+const App: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="*" element={<MainApp />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
