@@ -98,15 +98,45 @@ const MenuScreen: React.FC<{
   onBack: () => void
   onSignOut: () => void
   onAboutClick: () => void
-}> = ({ user, onBack, onSignOut, onAboutClick }) => {
+  isOpen: boolean
+}> = ({ user, onBack, onSignOut, onAboutClick, isOpen }) => {
+  if (!isOpen) return null
+
   return (
-    <div className="bg-white min-h-screen flex flex-col">
-      <Header onMenuClick={() => {}} onInfoClick={() => {}} />
-      <div className="flex items-center justify-center p-6 flex-1 mb-8">
-        <div className="w-full max-w-md p-8">
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, pointerEvents: isOpen ? 'auto' : 'none' }}>
+      {/* Backdrop */}
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 9998
+        }}
+        onClick={onBack}
+      />
+      
+      {/* Menu Panel */}
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100%',
+          width: '320px',
+          backgroundColor: 'white',
+          boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+          zIndex: 9999,
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 300ms ease-in-out'
+        }}
+      >
+        <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Menu</h2>
+          <div className="flex justify-between items-center p-6 border-b border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900">Menu</h2>
             <button
               onClick={onBack}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -117,7 +147,7 @@ const MenuScreen: React.FC<{
           </div>
 
           {/* Content */}
-          <div className="space-y-6 mb-8">
+          <div className="flex-1 p-6 space-y-6 overflow-y-auto">
             {/* User Section */}
             <div>
               <label className="text-sm text-gray-500 block mb-2">User</label>
@@ -126,19 +156,19 @@ const MenuScreen: React.FC<{
               </p>
             </div>
 
-            {/* About Section */}
+            {/* Instructions Section */}
             <div>
-              <button 
+              <Button
                 onClick={onAboutClick}
-                className="text-base font-bold text-gray-900 hover:text-gray-700 transition-colors cursor-pointer underline hover:no-underline"
+                className="w-full bg-[#0F206C] hover:bg-[#0a1855] text-white"
               >
-                About
-              </button>
+                Instructions
+              </Button>
             </div>
           </div>
 
           {/* Footer with Sign Out */}
-          <div className="pt-6">
+          <div className="p-6 border-t border-gray-200">
             <Button
               onClick={onSignOut}
               variant="outline"
@@ -149,7 +179,6 @@ const MenuScreen: React.FC<{
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   )
 }
@@ -229,23 +258,11 @@ const MainApp: React.FC = () => {
   }
 
   const handleMenuClick = () => {
-    setIsPageTransitioning(true)
-    setTimeout(() => {
-      setShowMenuScreen(true)
-      setTimeout(() => {
-        setIsPageTransitioning(false)
-      }, 50)
-    }, 400)
+    setShowMenuScreen(true)
   }
 
   const handleBackFromMenu = () => {
-    setIsPageTransitioning(true)
-    setTimeout(() => {
-      setShowMenuScreen(false)
-      setTimeout(() => {
-        setIsPageTransitioning(false)
-      }, 50)
-    }, 400)
+    setShowMenuScreen(false)
   }
 
   const handleAboutClick = () => {
@@ -280,23 +297,6 @@ const MainApp: React.FC = () => {
     }, 400)
   }
 
-  if (showMenuScreen) {
-    return (
-      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
-        isPageTransitioning 
-          ? 'opacity-0 -translate-x-8' 
-          : 'opacity-100 translate-x-0'
-      }`}>
-        <MenuScreen 
-          user={user}
-          onBack={handleBackFromMenu}
-          onSignOut={handleSignOut}
-          onAboutClick={handleAboutClick}
-        />
-      </div>
-    )
-  }
-
   if (!user) {
     return (
       <div className="bg-white min-h-screen">
@@ -313,6 +313,13 @@ const MainApp: React.FC = () => {
             <SimpleNameForm onStart={start} />
           </div>
         </div>
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+          isOpen={showMenuScreen}
+        />
       </div>
     )
   }
@@ -395,6 +402,13 @@ const MainApp: React.FC = () => {
           </div>
         </div>
         <Footer />
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+          isOpen={showMenuScreen}
+        />
       </div>
     )
   }
@@ -430,6 +444,13 @@ const MainApp: React.FC = () => {
           )}
         </div>
         <Footer />
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+          isOpen={showMenuScreen}
+        />
       </div>
     )
   }
@@ -463,6 +484,13 @@ const MainApp: React.FC = () => {
         </div>
       </div>
         <Footer />
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+          isOpen={showMenuScreen}
+        />
     </div>
   )
 }
