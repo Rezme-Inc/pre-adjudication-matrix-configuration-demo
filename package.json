@@ -36,10 +36,11 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/supabase-js": "^2.37.0",
     "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.0",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.487.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-router-dom": "^7.9.5",
     "tailwind-merge": "^2.2.1",
     "tailwindcss": "^4.1.3"
   },

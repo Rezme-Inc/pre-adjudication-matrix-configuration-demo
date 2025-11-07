@@ -6,56 +6,69 @@ import { Label } from './ui/label'
 import { Button } from './ui/button'
 
 export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string }; responses: OffenseResponse[] }> = ({ user, responses }) => {
-  const [emails, setEmails] = useState('')
+  const [interestEmail, setInterestEmail] = useState('')
   const [status, setStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
   const [batchId, setBatchId] = useState<string | null>(null)
 
-  const validateEmails = (raw: string) => {
-    const arr = raw.split(',').map((s) => s.trim()).filter(Boolean)
+  const validateEmail = (email: string) => {
+    const trimmed = email.trim()
+    if (!trimmed) return null
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return arr.every((e) => re.test(e)) ? arr : null
+    return re.test(trimmed) ? trimmed : null
   }
 
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const list = validateEmails(emails)
-    if (!list || list.length === 0) {
-        setStatus({ type: 'error', message: 'Please provide at least one valid email (comma-separated if multiple).' })
-      return
-    }
+    
+    setStatus({ type: 'loading' })
 
-      setStatus({ type: 'loading' })
-
-      // Prepare the payload that will go into Supabase
+    // Prepare the payload that will go into Supabase
     const payload = {
-        batch_id: crypto.randomUUID(), // Unique ID for this submission batch
-        submitted_by_name: `${user.firstName} ${user.lastName}`,
-        recipient_emails: list,
-        responses: responses.map(r => ({
-          offense_name: r.offense,
-          decision_level: r.decision,
-          look_back_period: r.lookBackYears,
-          notes: r.notes || null
-        })),
-        submitted_at: new Date().toISOString(),
+      batch_id: crypto.randomUUID(), // Unique ID for this submission batch
+      submitted_by_name: `${user.firstName} ${user.lastName}`,
+      recipient_emails: [], // Empty array since email is no longer required
+      responses: responses.map(r => ({
+        offense_name: r.offense,
+        decision_level: r.decision,
+        look_back_period: r.lookBackYears,
+        notes: r.notes || null
+      })),
+      submitted_at: new Date().toISOString(),
     }
 
-      try {
-        const { error } = await supabase
-          .from('decisions_batch')
-          .insert(payload)
+    try {
+      // Submit the batch
+      const { error: batchError } = await supabase
+        .from('decisions_batch')
+        .insert(payload)
 
-        if (error) throw error
+      if (batchError) throw batchError
 
-        setBatchId(payload.batch_id)
-        setStatus({ type: 'success', message: 'Submission successful! The recipients will be notified.' })
-      } catch (err) {
-        console.error('Submission error:', err)
-        setStatus({ 
-          type: 'error',
-          message: err instanceof Error ? err.message : 'Failed to submit. Please try again.'
-        })
+      // If user provided an interest email, save it separately
+      const validatedInterestEmail = validateEmail(interestEmail)
+      if (validatedInterestEmail) {
+        const { error: emailError } = await supabase
+          .from('interest_emails')
+          .insert({
+            email: validatedInterestEmail,
+            submitted_at: new Date().toISOString()
+          })
+
+        if (emailError) {
+          console.error('Error saving interest email:', emailError)
+          // Don't fail the whole submission if email save fails
+        }
       }
+
+      setBatchId(payload.batch_id)
+      setStatus({ type: 'success', message: 'Submission successful!' })
+    } catch (err) {
+      console.error('Submission error:', err)
+      setStatus({ 
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to submit. Please try again.'
+      })
+    }
   }
 
   return (
@@ -91,16 +104,20 @@ export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string
         <div className="pb-4"></div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="emails">Recipient email(s) (comma-separated)</Label>
-          <Input
-            id="emails"
-            value={emails}
-            onChange={(e) => setEmails(e.target.value)}
-            placeholder="reviewer@example.com,ops@example.com"
+      <form onSubmit={handleSubmit}>
+        <div className="form-group" style={{ marginBottom: 16 }}>
+          <label htmlFor="interestEmail">Email (optional - if you're interested in seeing more)</label>
+          <input
+            id="interestEmail"
+            type="email"
+            value={interestEmail}
+            onChange={(e) => setInterestEmail(e.target.value)}
+            placeholder="your.email@example.com"
             disabled={status.type === 'loading' || status.type === 'success'}
           />
+          <small style={{ display: 'block', marginTop: 4, color: '#666' }}>
+            Optional: Enter your email if you'd like to receive updates or see more information.
+          </small>
         </div>
         <Button 
           type="submit" 

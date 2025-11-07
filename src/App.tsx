@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
 import { OffensePage } from './components/OffensePage'
 import { FinalSubmit } from './components/FinalSubmit'
@@ -44,7 +45,7 @@ const OFFENSES = [
 // We'll run the user through the FIRST_N_OFFENSES (user asked for 12 offenses)
 const FIRST_N_OFFENSES = 9
 
-const App: React.FC = () => {
+const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [responses, setResponses] = useState<OffenseResponse[]>([])
@@ -268,6 +269,18 @@ const App: React.FC = () => {
     </div>
   )
 }
+
+const App: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="*" element={<MainApp />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
 
 const SimpleNameForm: React.FC<{ onStart: (first: string, last: string) => void }> = ({ onStart }) => {
   const [first, setFirst] = useState('')
