@@ -248,6 +248,19 @@ export const OffensePage: React.FC<{
             Enable Lookback Period
           </Label>
         </div>
+        
+        {/* Instruction text for lookback period */}
+        <div 
+          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            decision !== 'Always Eligible' 
+              ? 'opacity-100 max-h-20' 
+              : 'opacity-0 max-h-0'
+          }`}
+        >
+          <p className="text-gray-500 text-sm pl-7">
+            Disabling means review will occur with no time limit
+          </p>
+        </div>
 
         {/* Note when greyed out */}
         <div 
@@ -272,7 +285,7 @@ export const OffensePage: React.FC<{
         >
           <div className="flex items-center justify-center">
             <span className="text-[#0F206C] tabular-nums text-lg font-bold">
-              {lookBackYears ?? 1} {lookBackYears === 1 ? 'year' : 'years'}
+              {lookBackYears === 10 ? '10+' : lookBackYears ?? 1} {lookBackYears === 1 ? 'year' : 'years'}
             </span>
           </div>
           <Slider
@@ -285,14 +298,14 @@ export const OffensePage: React.FC<{
           />
           <div className="flex justify-between text-gray-400 text-xs">
             <span>1</span>
-            <span>10</span>
+            <span>10+</span>
           </div>
         </div>
       </div>
 
       {/* Notes Section */}
       <div className="space-y-3 mb-6">
-        <Label htmlFor="notes">Notes (optional, one sentence)</Label>
+        <Label htmlFor="notes">Notes (optional)</Label>
         <Textarea 
           id="notes" 
           value={notes} 
