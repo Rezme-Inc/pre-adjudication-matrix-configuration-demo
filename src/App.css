@@ -24,17 +24,47 @@ body, html {
   font-size: 14px;
   color: white;
   text-transform: uppercase;
+  display: inline-block;
 }
 
 .pill-always-eligible {
-  background-color: #2ecc71;
+  background-color: #3b82f6;
 }
 
 .pill-job-dependent {
-  background-color: #f1c40f;
-  color: #333;
+  background-color: #a855f7;
 }
 
 .pill-always-review {
-  background-color: #e74c3c;
+  background-color: #f97316;
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.4s ease-out;
+}
+
+.animate-slide-out-left {
+  animation: slide-out-left 0.4s ease-out;
 }

@@ -45,6 +45,7 @@ export default function AdminDashboard(): JSX.Element {
   const [batches, setBatches] = useState<BatchRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'percentages' | 'years'>('percentages')
 
   useEffect(() => {
     let mounted = true
@@ -181,45 +182,94 @@ export default function AdminDashboard(): JSX.Element {
 
       <section className="bg-gray-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900">Aggregated statistics by offense</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-gray-300">
-                <th className="text-left py-2 px-2 text-sm font-semibold text-gray-700">Offense</th>
-                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Always Eligible %</th>
-                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Job Dependent %</th>
-                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Always Review %</th>
-                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Mean yrs</th>
-                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Median yrs</th>
-                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Mode yrs</th>
-                <th className="text-center py-2 px-2 text-sm font-semibold text-gray-700">Votes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {OFFENSES.map((off) => {
-                const row = aggregate[off]
-                return (
-                  <tr key={off} className="border-b border-gray-200 hover:bg-gray-100">
-                    <td className="py-2 px-2 text-sm text-gray-900">{off}</td>
-                    <td className="text-center py-2 px-2">
-                      {row ? <span className="pill pill-always-eligible">{row.pct.Green.toFixed(1)}%</span> : '—'}
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      {row ? <span className="pill pill-job-dependent">{row.pct.Yellow.toFixed(1)}%</span> : '—'}
-                    </td>
-                    <td className="text-center py-2 px-2">
-                      {row ? <span className="pill pill-always-review">{row.pct.Red.toFixed(1)}%</span> : '—'}
-                    </td>
-                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}</td>
-                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}</td>
-                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row && row.modeYears !== null ? String(row.modeYears) : '—'}</td>
-                    <td className="text-center py-2 px-2 text-sm text-gray-700">{row ? row.total : 0}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        
+        {/* Tabs */}
+        <div className="flex space-x-2 mb-4 border-b border-gray-300">
+          <button
+            onClick={() => setActiveTab('percentages')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'percentages'
+                ? 'text-gray-900 border-b-2 border-gray-900'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Review Options
+          </button>
+          <button
+            onClick={() => setActiveTab('years')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'years'
+                ? 'text-gray-900 border-b-2 border-gray-900'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Lookback Period
+          </button>
         </div>
+
+        {/* Percentages Table */}
+        {activeTab === 'percentages' && (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-gray-300">
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Offense</th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Always Eligible %</th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Job Dependent %</th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Always Review %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {OFFENSES.map((off) => {
+                  const row = aggregate[off]
+                  return (
+                    <tr key={off} className="border-b border-gray-200 hover:bg-gray-100">
+                      <td className="text-center py-4 px-4 text-sm text-gray-900">{off}</td>
+                      <td className="text-center py-4 px-6">
+                        {row ? <span className="pill pill-always-eligible">{row.pct.Green.toFixed(1)}%</span> : '—'}
+                      </td>
+                      <td className="text-center py-4 px-6">
+                        {row ? <span className="pill pill-job-dependent">{row.pct.Yellow.toFixed(1)}%</span> : '—'}
+                      </td>
+                      <td className="text-center py-4 px-6">
+                        {row ? <span className="pill pill-always-review">{row.pct.Red.toFixed(1)}%</span> : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Years Table */}
+        {activeTab === 'years' && (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-gray-300">
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Offense</th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Mean yrs</th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Median yrs</th>
+                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Mode yrs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {OFFENSES.map((off) => {
+                  const row = aggregate[off]
+                  return (
+                    <tr key={off} className="border-b border-gray-200 hover:bg-gray-100">
+                      <td className="text-center py-4 px-4 text-sm text-gray-900">{off}</td>
+                      <td className="text-center py-4 px-4 text-sm text-gray-700">{row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}</td>
+                      <td className="text-center py-4 px-4 text-sm text-gray-700">{row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}</td>
+                      <td className="text-center py-4 px-4 text-sm text-gray-700">{row && row.modeYears !== null ? String(row.modeYears) : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="bg-gray-50 rounded-lg p-6">
