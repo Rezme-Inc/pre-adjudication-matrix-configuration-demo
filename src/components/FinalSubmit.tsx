@@ -72,10 +72,32 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
 
   return (
     <div className="max-w-3xl space-y-6">
-      <p className="text-gray-600">You're about to submit the following {responses.length} offense assessments.</p>
+      <p className="text-gray-600">Your {responses.length} offense assessments have been successfully recorded.</p>
+
+      <form onSubmit={handleSubmit}>
+        <div className="form-group" style={{ marginBottom: 16 }}>
+          <label htmlFor="interestEmail">Email (optional)</label>
+          <input
+            id="interestEmail"
+            type="email"
+            value={interestEmail}
+            onChange={(e) => setInterestEmail(e.target.value)}
+            placeholder="your.email@example.com"
+            disabled={status.type === 'loading' || status.type === 'success'}
+          />
+          <small style={{ display: 'block', marginTop: 4, color: '#666' }}>
+          If you'd like to request a follow-up regarding this demo or wish to discuss the application further, please enter your email address.      </small>
+        </div>
+        <Button 
+          type="submit" 
+          disabled={status.type === 'loading' || status.type === 'success'}
+          className="w-full"
+        >
+          {status.type === 'loading' ? 'Submitting...' : 'Submit Email'}
+        </Button>
+      </form>
 
       <div className="bg-gray-50 rounded-lg -mx-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 px-6 pt-4">Summary</h3>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -102,30 +124,6 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
         </div>
         <div className="pb-4"></div>
       </div>
-
-      <form onSubmit={handleSubmit}>
-        <div className="form-group" style={{ marginBottom: 16 }}>
-          <label htmlFor="interestEmail">Email (optional - if you're interested in seeing more)</label>
-          <input
-            id="interestEmail"
-            type="email"
-            value={interestEmail}
-            onChange={(e) => setInterestEmail(e.target.value)}
-            placeholder="your.email@example.com"
-            disabled={status.type === 'loading' || status.type === 'success'}
-          />
-          <small style={{ display: 'block', marginTop: 4, color: '#666' }}>
-            Optional: Enter your email if you'd like to receive updates or see more information.
-          </small>
-        </div>
-        <Button 
-          type="submit" 
-          disabled={status.type === 'loading' || status.type === 'success'}
-          className="w-full"
-        >
-          {status.type === 'loading' ? 'Submitting...' : 'Submit Email'}
-        </Button>
-      </form>
 
       {status.message && (
         <p className={`mt-4 p-3 rounded-md ${

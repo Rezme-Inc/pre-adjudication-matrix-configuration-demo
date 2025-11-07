@@ -340,11 +340,8 @@ const MainApp: React.FC = () => {
         />
         <div className="max-w-4xl mx-auto p-6">
           <div className="bg-white p-4 mb-6">
-            <div className="flex justify-between items-center">
-              <div className="text-gray-900 font-medium">User: {user.username}</div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</Button>
-              </div>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</Button>
             </div>
           </div>
           {showAdmin ? (
@@ -357,7 +354,7 @@ const MainApp: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white p-6">
-              <h1 className="text-2xl font-bold mb-6 text-gray-900">Final Submission</h1>
+              <h1 className="text-2xl font-bold mb-6 text-gray-900">Assessment Submitted</h1>
               <FinalSubmit user={user} responses={responses} />
             </div>
           )}
@@ -383,8 +380,7 @@ const MainApp: React.FC = () => {
             : 'opacity-100 translate-x-0'
         }`}>
           <div className="mb-6">
-            <div className="flex justify-between items-center">
-              <div className="text-gray-900 font-medium">User: {user.username}</div>
+            <div className="flex justify-end">
               <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0); setIsTransitioning(false) }}>Logout</Button>
             </div>
           </div>
