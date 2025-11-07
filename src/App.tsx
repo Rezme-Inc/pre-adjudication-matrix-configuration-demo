@@ -481,12 +481,37 @@ const App: React.FC = () => {
 
 const SimpleNameForm: React.FC<{ onStart: (username: string) => void }> = ({ onStart }) => {
   const [username, setUsername] = useState('')
+  const [error, setError] = useState('')
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setUsername(value)
+    
+    // Clear error when user starts typing
+    if (error && value.length >= 5) {
+      setError('')
+    }
+  }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!username.trim()) return
-    onStart(username.trim())
+    const trimmedUsername = username.trim()
+    
+    if (!trimmedUsername) {
+      setError('Username is required')
+      return
+    }
+    
+    if (trimmedUsername.length < 5) {
+      setError('Username must be at least 5 characters')
+      return
+    }
+    
+    setError('')
+    onStart(trimmedUsername)
   }
+
+  const isValid = username.trim().length >= 5
 
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -495,12 +520,32 @@ const SimpleNameForm: React.FC<{ onStart: (username: string) => void }> = ({ onS
         <input 
           id="username" 
           value={username} 
-          onChange={(e) => setUsername(e.target.value)} 
+          onChange={handleUsernameChange} 
           required 
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          minLength={5}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-transparent ${
+            error 
+              ? 'border-red-300 focus:ring-red-500' 
+              : 'border-gray-300 focus:ring-primary'
+          }`}
+          placeholder="Enter at least 5 characters"
         />
+        {error && (
+          <p className="mt-1 text-sm text-red-600">{error}</p>
+        )}
+        {username.length > 0 && username.length < 5 && !error && (
+          <p className="mt-1 text-sm text-gray-500">
+            {5 - username.length} more character{5 - username.length !== 1 ? 's' : ''} required
+          </p>
+        )}
       </div>
-      <Button type="submit" className="w-full bg-[#0F206C] hover:bg-[#0a1855] text-white">Start</Button>
+      <Button 
+        type="submit" 
+        disabled={!isValid}
+        className="w-full bg-[#0F206C] hover:bg-[#0a1855] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Start
+      </Button>
     </form>
   )
 }
