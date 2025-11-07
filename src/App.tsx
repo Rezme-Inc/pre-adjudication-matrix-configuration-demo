@@ -6,6 +6,7 @@ import { OffensePage } from './components/OffensePage'
 import { FinalSubmit } from './components/FinalSubmit'
 import AdminDashboard from './pages/AdminDashboard'
 import { Button } from './components/ui/button'
+import logoImage from './assets/image (1).png'
 
 type User = {
   firstName: string
@@ -227,6 +228,7 @@ const MainApp: React.FC = () => {
               ? 'opacity-0 -translate-x-8' 
               : 'opacity-100 translate-x-0'
           }`}>
+            <img src={logoImage} alt="Human Potential SUMMIT" className="mb-8" />
             <h1 className="text-2xl font-bold mb-2 text-gray-900">Flipping the Switch: User Demo</h1>
             <p className="text-gray-600 mb-10">Please enter a username to begin. No login required.</p>
             <SimpleNameForm onStart={start} />
