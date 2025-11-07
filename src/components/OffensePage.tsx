@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { supabase } from '../supabaseClient'
 import { RadioGroup, RadioGroupItem } from './ui/radio-group'
 import { Label } from './ui/label'
 import { Slider } from './ui/slider'
@@ -17,13 +18,15 @@ export const OffensePage: React.FC<{
   offense: string
   index: number
   total: number
+  username: string
   onBack: () => void
   onNext: (resp: OffenseResponse) => void
-}> = ({ offense, index, total, onBack, onNext }) => {
+}> = ({ offense, index, total, username, onBack, onNext }) => {
   const [decision, setDecision] = useState<'Always Eligible' | 'Job Dependent' | 'Always Review'>('Always Eligible')
   const [lookBackYears, setLookBackYears] = useState<number | null>(null)
   const [lookbackEnabled, setLookbackEnabled] = useState(false)
   const [notes, setNotes] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   // Map decision to radio value
   const decisionValue = decision === 'Always Eligible' ? 'display' : decision === 'Job Dependent' ? 'dispute' : 'review'
@@ -48,9 +51,90 @@ export const OffensePage: React.FC<{
     setLookBackYears(values[0])
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onNext({ offense, decision, lookBackYears, notes: notes.trim() || undefined })
+    
+    const response: OffenseResponse = {
+      offense,
+      decision,
+      lookBackYears,
+      notes: notes.trim() || undefined
+    }
+
+    setIsSaving(true)
+
+    try {
+      // Check if a batch exists for this user
+      const { data: existingBatch, error: fetchError } = await supabase
+        .from('decisions_batch')
+        .select('batch_id, responses')
+        .eq('username', username)
+        .single()
+
+      const newDecision = {
+        offense_name: offense,
+        decision_level: decision,
+        look_back_period: lookBackYears,
+        notes: notes.trim() || null
+      }
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is expected if no batch exists
+        throw fetchError
+      }
+
+      if (existingBatch) {
+        // Batch exists - update it
+        const existingResponses = (existingBatch.responses as any[]) || []
+        
+        // Check if decision for this offense already exists
+        const offenseIndex = existingResponses.findIndex(
+          (r: any) => r.offense_name === offense
+        )
+
+        let updatedResponses: any[]
+        if (offenseIndex >= 0) {
+          // Update existing decision
+          updatedResponses = [...existingResponses]
+          updatedResponses[offenseIndex] = newDecision
+        } else {
+          // Add new decision
+          updatedResponses = [...existingResponses, newDecision]
+        }
+
+        // Update the batch
+        const { error: updateError } = await supabase
+          .from('decisions_batch')
+          .update({
+            responses: updatedResponses,
+            submitted_at: new Date().toISOString()
+          })
+          .eq('batch_id', existingBatch.batch_id)
+
+        if (updateError) throw updateError
+      } else {
+        // No batch exists - create new one
+        const newBatchId = crypto.randomUUID()
+        const { error: insertError } = await supabase
+          .from('decisions_batch')
+          .insert({
+            batch_id: newBatchId,
+            username: username,
+            responses: [newDecision],
+            submitted_at: new Date().toISOString()
+          })
+
+        if (insertError) throw insertError
+      }
+    } catch (err) {
+      console.error('Error saving decision:', err)
+      // Continue to next page even if save fails
+    } finally {
+      setIsSaving(false)
+    }
+
+    // Proceed to next page
+    onNext(response)
   }
 
   // Convert years to slider value
@@ -208,8 +292,9 @@ export const OffensePage: React.FC<{
         <Button 
           type="submit" 
           className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
+          disabled={isSaving}
         >
-          Submit & Next
+          {isSaving ? 'Saving...' : 'Submit & Next'}
         </Button>
       </div>
     </form>

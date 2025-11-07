@@ -7,8 +7,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import { Button } from './components/ui/button'
 
 type User = {
-  firstName: string
-  lastName: string
+  username: string
 }
 
 type OffenseResponse = {
@@ -52,8 +51,8 @@ const MainApp: React.FC = () => {
   const [showAdmin, setShowAdmin] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
-  const start = (firstName: string, lastName: string) => {
-    setUser({ firstName, lastName })
+  const start = (username: string) => {
+    setUser({ username })
     setCurrentIndex(0)
     setResponses([])
     setIsTransitioning(false)
@@ -108,9 +107,8 @@ const MainApp: React.FC = () => {
         <div className="max-w-4xl mx-auto p-6">
           <header className="bg-white p-4 mb-6">
             <div className="flex justify-between items-center">
-              <div className="text-gray-900 font-medium">User: {user.firstName} {user.lastName}</div>
+              <div className="text-gray-900 font-medium">User: {user.username}</div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowAdmin(true)}>Admin</Button>
                 <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</Button>
               </div>
             </div>
@@ -142,7 +140,7 @@ const MainApp: React.FC = () => {
       }`}>
         <header className="mb-6">
           <div className="flex justify-between items-center">
-            <div className="text-gray-900 font-medium">User: {user.firstName} {user.lastName}</div>
+            <div className="text-gray-900 font-medium">User: {user.username}</div>
             <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0); setIsTransitioning(false) }}>Logout</Button>
           </div>
         </header>
@@ -155,6 +153,7 @@ const MainApp: React.FC = () => {
           offense={offense}
           index={currentIndex}
           total={FIRST_N_OFFENSES}
+          username={user.username}
           onBack={handleBack}
           onNext={handleNext}
         />
@@ -175,34 +174,23 @@ const App: React.FC = () => {
 }
 
 
-const SimpleNameForm: React.FC<{ onStart: (first: string, last: string) => void }> = ({ onStart }) => {
-  const [first, setFirst] = useState('')
-  const [last, setLast] = useState('')
+const SimpleNameForm: React.FC<{ onStart: (username: string) => void }> = ({ onStart }) => {
+  const [username, setUsername] = useState('')
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!first.trim() || !last.trim()) return
-    onStart(first.trim(), last.trim())
+    if (!username.trim()) return
+    onStart(username.trim())
   }
 
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label htmlFor="first" className="block text-sm font-medium text-gray-900 mb-2">First name</label>
+        <label htmlFor="username" className="block text-sm font-medium text-gray-900 mb-2">Username</label>
         <input 
-          id="first" 
-          value={first} 
-          onChange={(e) => setFirst(e.target.value)} 
-          required 
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-        />
-      </div>
-      <div>
-        <label htmlFor="last" className="block text-sm font-medium text-gray-900 mb-2">Last name</label>
-        <input 
-          id="last" 
-          value={last} 
-          onChange={(e) => setLast(e.target.value)} 
+          id="username" 
+          value={username} 
+          onChange={(e) => setUsername(e.target.value)} 
           required 
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
         />

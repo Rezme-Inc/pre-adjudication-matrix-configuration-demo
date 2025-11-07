@@ -11,7 +11,7 @@ type DecisionRow = {
 type BatchRow = {
   batch_id: string
   submitted_by_name?: string | null
-  recipient_emails?: string[] | null
+  username?: string | null
   responses: DecisionRow[]
   submitted_at?: string | null
 }

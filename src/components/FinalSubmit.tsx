@@ -5,7 +5,7 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Button } from './ui/button'
 
-export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string }; responses: OffenseResponse[] }> = ({ user, responses }) => {
+export const FinalSubmit: React.FC<{ user: { username: string }; responses: OffenseResponse[] }> = ({ user, responses }) => {
   const [interestEmail, setInterestEmail] = useState('')
   const [status, setStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
   const [batchId, setBatchId] = useState<string | null>(null)
@@ -25,8 +25,7 @@ export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string
     // Prepare the payload that will go into Supabase
     const payload = {
       batch_id: crypto.randomUUID(), // Unique ID for this submission batch
-      submitted_by_name: `${user.firstName} ${user.lastName}`,
-      recipient_emails: [], // Empty array since email is no longer required
+      username: user.username,
       responses: responses.map(r => ({
         offense_name: r.offense,
         decision_level: r.decision,
@@ -73,7 +72,7 @@ export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string
 
   return (
     <div className="max-w-3xl space-y-6">
-      <p className="text-gray-600">You're about to submit the following {responses.length} offense assessments. Please provide one or more recipient emails to receive the summary.</p>
+      <p className="text-gray-600">You're about to submit the following {responses.length} offense assessments.</p>
 
       <div className="bg-gray-50 rounded-lg p-4">
         <h3 className="text-lg font-semibold mb-3 text-gray-900">Summary</h3>
@@ -108,7 +107,7 @@ export const FinalSubmit: React.FC<{ user: { firstName: string; lastName: string
           disabled={status.type === 'loading' || status.type === 'success'}
           className="w-full"
         >
-          {status.type === 'loading' ? 'Submitting...' : 'Submit All'}
+          {status.type === 'loading' ? 'Submitting...' : 'Submit Email'}
         </Button>
       </form>
 
