@@ -350,7 +350,7 @@ const MainApp: React.FC = () => {
             <SimpleNameForm onStart={start} />
             
             {/* Email Collection Section */}
-            <form onSubmit={handleLandingEmailSubmit} style={{ marginTop: '75px' }}>
+            <form onSubmit={handleLandingEmailSubmit} style={{ marginTop: '75px' }} className="mt-[75px]">
               <div style={{
                 backgroundColor: '#f9fafb',
                 border: '1px solid #e5e7eb',
