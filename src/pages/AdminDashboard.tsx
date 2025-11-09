@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 type DecisionRow = {
   offense_name: string
@@ -46,6 +47,7 @@ export default function AdminDashboard(): JSX.Element {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'percentages' | 'years'>('percentages')
+  const [showBatches, setShowBatches] = useState(true)
 
   useEffect(() => {
     let mounted = true
@@ -171,36 +173,36 @@ export default function AdminDashboard(): JSX.Element {
   }, [batches])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-24 py-8">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin — Submissions (live)</h2>
+        <h2 className="text-4xl font-bold text-gray-900 mb-2">Admin — Submissions (live)</h2>
         {error && <div className="text-red-600 bg-red-50 p-3 rounded-md border border-red-200 mb-4">{error}</div>}
-        <div className="text-gray-600 mb-6">
+        <div className="text-2xl text-gray-600 mb-6">
           <strong>Recent batches:</strong> {batches.length} (live updates enabled)
         </div>
       </div>
 
-      <section className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">Aggregated statistics by offense</h3>
+      <section className="bg-gray-50 rounded-lg p-12 mx-12">
+        <h3 className="text-6xl font-semibold mb-10 text-gray-900">Aggregated statistics by offense</h3>
         
         {/* Tabs */}
-        <div className="flex space-x-2 mb-4 border-b border-gray-300">
+        <div className="flex space-x-32 mb-10">
           <button
             onClick={() => setActiveTab('percentages')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-20 py-6 text-5xl font-semibold transition-all rounded-lg border-4 ${
               activeTab === 'percentages'
-                ? 'text-gray-900 border-b-2 border-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-[#0F206C] text-white border-white shadow-lg'
+                : 'bg-white text-gray-900 border-gray-500 hover:border-[#0F206C]'
             }`}
           >
             Review Options
           </button>
           <button
             onClick={() => setActiveTab('years')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`px-20 py-6 text-5xl font-semibold transition-all rounded-lg border-4 ${
               activeTab === 'years'
-                ? 'text-gray-900 border-b-2 border-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-[#0F206C] text-white border-white shadow-lg'
+                : 'bg-white text-gray-900 border-gray-500 hover:border-[#0F206C]'
             }`}
           >
             Lookback Period
@@ -209,30 +211,30 @@ export default function AdminDashboard(): JSX.Element {
 
         {/* Percentages Table */}
         {activeTab === 'percentages' && (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+          <div className="overflow-x-auto border-4 border-gray-500 rounded-lg">
+            <table className="w-full border-collapse" style={{ border: '2px solid #9ca3af' }}>
               <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Offense</th>
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Always Eligible %</th>
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Job Dependent %</th>
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Always Review %</th>
+                <tr className="border-b-4 border-gray-400">
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Offense</th>
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Always Eligible %</th>
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Job Dependent %</th>
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Always Review %</th>
                 </tr>
               </thead>
               <tbody>
                 {OFFENSES.map((off) => {
                   const row = aggregate[off]
                   return (
-                    <tr key={off} className="border-b border-gray-200 hover:bg-gray-100">
-                      <td className="text-center py-4 px-4 text-sm text-gray-900">{off}</td>
-                      <td className="text-center py-4 px-6">
-                        {row ? <span className="pill pill-always-eligible">{row.pct.Green.toFixed(1)}%</span> : '—'}
+                    <tr key={off} className="border-b-2 border-gray-300 hover:bg-gray-100">
+                      <td className="text-center py-8 px-10 text-4xl text-gray-900 font-medium" style={{ borderBottom: '2px solid #d1d5db' }}>{off}</td>
+                      <td className="text-center py-8 px-12" style={{ borderBottom: '2px solid #d1d5db' }}>
+                        {row ? <span className="pill pill-always-eligible text-9xl px-42 py-21">{row.pct.Green.toFixed(1)}%</span> : '—'}
                       </td>
-                      <td className="text-center py-4 px-6">
-                        {row ? <span className="pill pill-job-dependent">{row.pct.Yellow.toFixed(1)}%</span> : '—'}
+                      <td className="text-center py-8 px-12" style={{ borderBottom: '2px solid #d1d5db' }}>
+                        {row ? <span className="pill pill-job-dependent text-9xl px-42 py-21">{row.pct.Yellow.toFixed(1)}%</span> : '—'}
                       </td>
-                      <td className="text-center py-4 px-6">
-                        {row ? <span className="pill pill-always-review">{row.pct.Red.toFixed(1)}%</span> : '—'}
+                      <td className="text-center py-8 px-12" style={{ borderBottom: '2px solid #d1d5db' }}>
+                        {row ? <span className="pill pill-always-review text-9xl px-42 py-21">{row.pct.Red.toFixed(1)}%</span> : '—'}
                       </td>
                     </tr>
                   )
@@ -244,25 +246,25 @@ export default function AdminDashboard(): JSX.Element {
 
         {/* Years Table */}
         {activeTab === 'years' && (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+          <div className="overflow-x-auto border-4 border-gray-500 rounded-lg">
+            <table className="w-full border-collapse" style={{ border: '2px solid #9ca3af' }}>
               <thead>
-                <tr className="border-b border-gray-300">
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Offense</th>
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Mean yrs</th>
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Median yrs</th>
-                  <th className="text-center py-4 px-4 text-sm font-semibold text-gray-700">Mode yrs</th>
+                <tr className="border-b-4 border-gray-400">
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Offense</th>
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Mean yrs</th>
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Median yrs</th>
+                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Mode yrs</th>
                 </tr>
               </thead>
               <tbody>
                 {OFFENSES.map((off) => {
                   const row = aggregate[off]
                   return (
-                    <tr key={off} className="border-b border-gray-200 hover:bg-gray-100">
-                      <td className="text-center py-4 px-4 text-sm text-gray-900">{off}</td>
-                      <td className="text-center py-4 px-4 text-sm text-gray-700">{row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}</td>
-                      <td className="text-center py-4 px-4 text-sm text-gray-700">{row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}</td>
-                      <td className="text-center py-4 px-4 text-sm text-gray-700">{row && row.modeYears !== null ? String(row.modeYears) : '—'}</td>
+                    <tr key={off} className="border-b-2 border-gray-300 hover:bg-gray-100">
+                      <td className="text-center py-8 px-10 text-4xl text-gray-900 font-medium">{off}</td>
+                      <td className="text-center py-8 px-10 text-4xl text-gray-700">{row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}</td>
+                      <td className="text-center py-8 px-10 text-4xl text-gray-700">{row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}</td>
+                      <td className="text-center py-8 px-10 text-4xl text-gray-700">{row && row.modeYears !== null ? String(row.modeYears) : '—'}</td>
                     </tr>
                   )
                 })}
@@ -273,29 +275,46 @@ export default function AdminDashboard(): JSX.Element {
       </section>
 
       <section className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">Most recent batches</h3>
-        {loading ? (
-          <div className="text-gray-600">Loading...</div>
-        ) : (
-          <ul className="space-y-3">
-            {batches.map((b) => (
-              <li key={b.batch_id} className="bg-white p-3 rounded-md border border-gray-200">
-                <div className="mb-1">
-                  <strong className="text-gray-900">{b.submitted_by_name ?? 'Unknown'}</strong> —{' '}
-                  <small className="text-gray-500">{new Date(b.submitted_at ?? '').toLocaleString()}</small>
-                </div>
-                <div className="text-sm text-gray-600">
-                  {((b.responses || []) as DecisionRow[])
-                    .slice(0, 6)
-                    .map((r) => (
-                      `${r.offense_name}: ${r.decision_level}${r.look_back_period ? ` (${r.look_back_period}yr)` : ''}`
-                    ))
-                    .join(' — ')}
-                  {((b.responses || []) as DecisionRow[]).length > 6 && ' — …'}
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div 
+          className="flex items-center cursor-pointer hover:bg-gray-100 -mx-6 -mt-6 px-6 py-4 rounded-t-lg transition-colors"
+          onClick={() => setShowBatches(!showBatches)}
+        >
+          <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[#0F206C] mr-5 transition-colors" style={{ backgroundColor: '#0F206C' }}>
+            {showBatches ? (
+              <ChevronDown className="w-4 h-4 text-white" />
+            ) : (
+              <ChevronUp className="w-4 h-4 text-white" />
+            )}
+          </div>
+          <h3 className="text-3xl font-semibold text-gray-900">Most recent batches</h3>
+        </div>
+        
+        {showBatches && (
+          <div className="mt-4">
+            {loading ? (
+              <div className="text-2xl text-gray-600">Loading...</div>
+            ) : (
+              <ul className="space-y-3">
+                {batches.map((b) => (
+                  <li key={b.batch_id} className="bg-white p-3 rounded-md border border-gray-200">
+                    <div className="mb-1">
+                      <strong className="text-2xl text-gray-900">{b.submitted_by_name ?? 'Unknown'}</strong> —{' '}
+                      <small className="text-xl text-gray-500">{new Date(b.submitted_at ?? '').toLocaleString()}</small>
+                    </div>
+                    <div className="text-xl text-gray-600">
+                      {((b.responses || []) as DecisionRow[])
+                        .slice(0, 6)
+                        .map((r) => (
+                          `${r.offense_name}: ${r.decision_level}${r.look_back_period ? ` (${r.look_back_period}yr)` : ''}`
+                        ))
+                        .join(' — ')}
+                      {((b.responses || []) as DecisionRow[]).length > 6 && ' — …'}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </section>
     </div>
