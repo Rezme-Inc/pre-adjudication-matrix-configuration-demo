@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { NO_TIME_LIMIT } from '../App'
 
 type DecisionRow = {
   offense_name: string
   decision_level: 'Always Eligible' | 'Job Dependent' | 'Always Review'
-  look_back_period: number | null
+  look_back_period: number
   notes?: string | null
 }
 
@@ -48,6 +49,8 @@ export default function AdminDashboard(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'percentages' | 'years'>('percentages')
   const [showBatches, setShowBatches] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     let mounted = true
@@ -126,7 +129,10 @@ export default function AdminDashboard(): JSX.Element {
           if (lvl === 'Always Eligible') green += 1
           else if (lvl === 'Job Dependent') yellow += 1
           else if (lvl === 'Always Review') red += 1
-          if (typeof r.look_back_period === 'number') values.push(r.look_back_period)
+          // Only include actual year values (1-10), exclude 0 (N/A) and 25 (No time limit)
+          if (typeof r.look_back_period === 'number' && r.look_back_period > 0 && r.look_back_period < NO_TIME_LIMIT) {
+            values.push(r.look_back_period)
+          }
         })
       })
 
@@ -172,151 +178,300 @@ export default function AdminDashboard(): JSX.Element {
     return map
   }, [batches])
 
+  // Pagination calculations
+  const totalPages = Math.ceil(batches.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentBatches = batches.slice(startIndex, endIndex)
+
+  // Reset to page 1 when batches change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [batches.length])
+
   return (
-    <div className="space-y-6 px-24 py-8">
-      <div>
-        <h2 className="text-4xl font-bold text-gray-900 mb-2">Admin — Submissions (live)</h2>
-        {error && <div className="text-red-600 bg-red-50 p-3 rounded-md border border-red-200 mb-4">{error}</div>}
-        <div className="text-2xl text-gray-600 mb-6">
-          <strong>Recent batches:</strong> {batches.length} (live updates enabled)
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Header */}
+        <div style={{ padding: '1.5rem' }} className="bg-white rounded-lg shadow border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }} className="font-bold text-gray-900">Admin Dashboard</h2>
+              <p style={{ fontSize: '1rem' }} className="text-gray-500">Live submission tracking</p>
+            </div>
+            <div className="text-right">
+              <div style={{ fontSize: '1rem', marginBottom: '0.25rem' }} className="text-gray-500">Total Submissions</div>
+              <div style={{ fontSize: '3rem', fontWeight: '900' }} className="text-[#0F206C]">{batches.length}</div>
+            </div>
+          </div>
+          {error && <div className="text-red-600 bg-red-50 p-3 rounded-md border border-red-200 mt-4">{error}</div>}
         </div>
+
+        {/* Statistics Section */}
+        <section className="bg-white rounded-xl shadow-lg border-2 border-gray-300">
+          <div style={{ padding: '2rem' }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: '800', letterSpacing: '-0.025em' }} className="text-gray-900">Aggregated Statistics by Offense</h1>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ gap: '0.75rem', paddingLeft: '1rem', paddingRight: '1rem' }} className="flex">
+            <button
+              onClick={() => setActiveTab('percentages')}
+              style={{
+                paddingLeft: '2rem',
+                paddingRight: '2rem',
+                paddingTop: '0.5rem',
+                paddingBottom: '0.5rem',
+                fontSize: '1.125rem',
+                fontWeight: '800',
+                borderRadius: '0.5rem 0.5rem 0 0',
+                backgroundColor: activeTab === 'percentages' ? '#0F206C' : '#f3f4f6',
+                color: activeTab === 'percentages' ? 'white' : '#374151',
+                borderWidth: '2px',
+                borderBottomWidth: activeTab === 'percentages' ? '0' : '2px',
+                borderColor: activeTab === 'percentages' ? '#0F206C' : '#d1d5db',
+                borderStyle: 'solid',
+                cursor: 'pointer'
+              }}
+              className="transition-all"
+            >
+              Review Options
+            </button>
+            <button
+              onClick={() => setActiveTab('years')}
+              style={{
+                paddingLeft: '2rem',
+                paddingRight: '2rem',
+                paddingTop: '0.5rem',
+                paddingBottom: '0.5rem',
+                fontSize: '1.125rem',
+                fontWeight: '800',
+                borderRadius: '0.5rem 0.5rem 0 0',
+                backgroundColor: activeTab === 'years' ? '#0F206C' : '#f3f4f6',
+                color: activeTab === 'years' ? 'white' : '#374151',
+                borderWidth: '2px',
+                borderBottomWidth: activeTab === 'years' ? '0' : '2px',
+                borderColor: activeTab === 'years' ? '#0F206C' : '#d1d5db',
+                borderStyle: 'solid',
+                cursor: 'pointer'
+              }}
+              className="transition-all"
+            >
+              Lookback Period
+            </button>
+          </div>
+
+          <div style={{ borderTopWidth: '3px', borderColor: '#0F206C', borderStyle: 'solid' }}></div>
+
+          {/* Percentages Table */}
+          {activeTab === 'percentages' && (
+            <div style={{ padding: '2rem' }} className="overflow-x-auto">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f3f4f6', borderBottomWidth: '2px', borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' }}>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'left', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Offense</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Always Eligible</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Job Dependent</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Always Review</th>
+                  </tr>
+                </thead>
+                <tbody style={{ backgroundColor: 'white' }}>
+                  {OFFENSES.map((off, idx) => {
+                    const row = aggregate[off]
+                    return (
+                      <tr key={off} style={{ borderBottomWidth: idx !== OFFENSES.length - 1 ? '1px' : '0', borderBottomColor: '#e5e7eb', borderBottomStyle: 'solid' }} className="hover:bg-gray-50 transition-colors">
+                        <td style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', fontSize: '1.1rem', fontWeight: '700' }} className="text-gray-900">{off}</td>
+                        <td style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center' }}>
+                          {row ? (
+                            <span style={{ backgroundColor: '#3b82f6', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingTop: '0.75rem', paddingBottom: '0.75rem', borderRadius: '9999px', fontSize: '1.1rem', fontWeight: '800', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', minWidth: '100px' }}>
+                              {row.pct.Green.toFixed(1)}%
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td style={{ paddingTop: '0.5rem', paddingBottom: '0.5rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center' }}>
+                          {row ? (
+                            <span style={{ backgroundColor: '#a855f7', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingTop: '0.75rem', paddingBottom: '0.75rem', borderRadius: '9999px', fontSize: '1.1rem', fontWeight: '800', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', minWidth: '100px' }}>
+                              {row.pct.Yellow.toFixed(1)}%
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td style={{ paddingTop: '0.5rem', paddingBottom: '0.5rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center' }}>
+                          {row ? (
+                            <span style={{ backgroundColor: '#f97316', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingTop: '0.75rem', paddingBottom: '0.75rem', borderRadius: '9999px', fontSize: '1.1rem', fontWeight: '800', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', minWidth: '100px' }}>
+                              {row.pct.Red.toFixed(1)}%
+                            </span>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Years Table */}
+          {activeTab === 'years' && (
+            <div style={{ padding: '2rem' }} className="overflow-x-auto">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f3f4f6', borderBottomWidth: '2px', borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' }}>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'left', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Offense</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Mean Years</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Median Years</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Mode Years</th>
+                  </tr>
+                </thead>
+                <tbody style={{ backgroundColor: 'white' }}>
+                  {OFFENSES.map((off, idx) => {
+                    const row = aggregate[off]
+                    return (
+                      <tr key={off} style={{ borderBottomWidth: idx !== OFFENSES.length - 1 ? '1px' : '0', borderBottomColor: '#e5e7eb', borderBottomStyle: 'solid' }} className="hover:bg-gray-50 transition-colors">
+                        <td style={{ paddingTop: '1.5rem', paddingBottom: '1.5rem', paddingLeft: '2rem', paddingRight: '2rem', fontSize: '1.1rem', fontWeight: '700' }} className="text-gray-900">{off}</td>
+                        <td style={{ paddingTop: '1.5rem', paddingBottom: '1.5rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1.25rem', fontWeight: '800' }} className="text-gray-900">
+                          {row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}
+                        </td>
+                        <td style={{ paddingTop: '1.5rem', paddingBottom: '1.5rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1.25rem', fontWeight: '800' }} className="text-gray-900">
+                          {row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}
+                        </td>
+                        <td style={{ paddingTop: '1.5rem', paddingBottom: '1.5rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1.25rem', fontWeight: '800' }} className="text-gray-900">
+                          {row && row.modeYears !== null ? String(row.modeYears) : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* Recent Batches Section */}
+        <section className="bg-white rounded-lg shadow border border-gray-200">
+          <button
+            style={{ width: '100%', padding: '1.5rem', cursor: 'pointer', borderRadius: '0.5rem 0.5rem 0 0' }}
+            className="flex items-center justify-between hover:bg-gray-50 transition-colors"
+            onClick={() => setShowBatches(!showBatches)}
+          >
+            <div style={{ gap: '0.75rem' }} className="flex items-center">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2rem', height: '2rem', borderRadius: '9999px', backgroundColor: '#0F206C' }}>
+                {showBatches ? (
+                  <ChevronDown style={{ width: '1rem', height: '1rem' }} className="text-white" />
+                ) : (
+                  <ChevronUp style={{ width: '1rem', height: '1rem' }} className="text-white" />
+                )}
+              </div>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: '700' }} className="text-gray-900">Recent Submissions</h3>
+            </div>
+            <span style={{ fontSize: '1rem', fontWeight: '600' }} className="text-gray-500">{batches.length} total</span>
+          </button>
+
+          {showBatches && (
+            <div style={{ borderTopWidth: '1px', borderColor: '#e5e7eb', borderStyle: 'solid' }}>
+              {loading ? (
+                <div style={{ padding: '1.5rem', textAlign: 'center', fontSize: '1rem' }} className="text-gray-500">Loading submissions...</div>
+              ) : batches.length === 0 ? (
+                <div style={{ padding: '1.5rem', textAlign: 'center', fontSize: '1rem' }} className="text-gray-500">No submissions yet</div>
+              ) : (
+                <>
+                  <div className="divide-y divide-gray-200">
+                    {currentBatches.map((b) => (
+                      <div key={b.batch_id} style={{ padding: '1rem' }} className="hover:bg-gray-50 transition-colors">
+                        <div style={{ marginBottom: '0.5rem' }} className="flex items-center justify-between">
+                          <span style={{ fontSize: '1rem', fontWeight: '700' }} className="text-gray-900">
+                            {b.submitted_by_name ?? b.username ?? 'Unknown'}
+                          </span>
+                          <span style={{ fontSize: '1rem', fontWeight: '500' }} className="text-gray-500">
+                            {new Date(b.submitted_at ?? '').toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.875rem', lineHeight: '1.5' }} className="text-gray-600 line-clamp-2">
+                          {((b.responses || []) as DecisionRow[])
+                            .slice(0, 4)
+                            .map((r) => {
+                              const lookbackDisplay = r.look_back_period === 0
+                                ? ''
+                                : r.look_back_period === NO_TIME_LIMIT
+                                  ? ' (No limit)'
+                                  : ` (${r.look_back_period === 10 ? '10+' : r.look_back_period}yr)`
+                              return `${r.offense_name}: ${r.decision_level}${lookbackDisplay}`
+                            })
+                            .join(' • ')}
+                          {((b.responses || []) as DecisionRow[]).length > 4 && ' • ...'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+                      <div className="text-sm text-gray-500">
+                        Showing {startIndex + 1}-{Math.min(endIndex, batches.length)} of {batches.length} submissions
+                      </div>
+                      <div style={{ gap: '1rem' }} className="flex items-center">
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="px-4 py-2 text-md border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+                        >
+                          Previous
+                        </button>
+
+                        {/* Page Numbers */}
+                        <div style={{ gap: '0.75rem' }} className="flex items-center">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                            // Show first page, last page, current page, and pages around current
+                            const showPage = page === 1 ||
+                              page === totalPages ||
+                              Math.abs(page - currentPage) <= 1
+
+                            if (!showPage && page === 2 && currentPage > 4) {
+                              return <span key={page} style={{ paddingLeft: '0.75rem', paddingRight: '0.75rem' }} className="text-gray-400">...</span>
+                            }
+                            if (!showPage && page === totalPages - 1 && currentPage < totalPages - 3) {
+                              return <span key={page} style={{ paddingLeft: '0.75rem', paddingRight: '0.75rem' }} className="text-gray-400">...</span>
+                            }
+                            if (!showPage) return null
+
+                            return (
+                              <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                style={{ width: '2.5rem', height: '2.5rem', fontSize: '0.875rem' }}
+                                className={`rounded-md transition-colors ${currentPage === page
+                                  ? 'bg-[#0F206C] text-white'
+                                  : 'border border-gray-300 hover:bg-gray-100'
+                                  }`}
+                              >
+                                {page}
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="px-4 py-2 text-md border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </section>
       </div>
-
-      <section className="bg-gray-50 rounded-lg p-12 mx-12">
-        <h3 className="text-6xl font-semibold mb-10 text-gray-900">Aggregated statistics by offense</h3>
-        
-        {/* Tabs */}
-        <div className="flex space-x-32 mb-10">
-          <button
-            onClick={() => setActiveTab('percentages')}
-            className={`px-20 py-6 text-5xl font-semibold transition-all rounded-lg border-4 ${
-              activeTab === 'percentages'
-                ? 'bg-[#0F206C] text-white border-white shadow-lg'
-                : 'bg-white text-gray-900 border-gray-500 hover:border-[#0F206C]'
-            }`}
-          >
-            Review Options
-          </button>
-          <button
-            onClick={() => setActiveTab('years')}
-            className={`px-20 py-6 text-5xl font-semibold transition-all rounded-lg border-4 ${
-              activeTab === 'years'
-                ? 'bg-[#0F206C] text-white border-white shadow-lg'
-                : 'bg-white text-gray-900 border-gray-500 hover:border-[#0F206C]'
-            }`}
-          >
-            Lookback Period
-          </button>
-        </div>
-
-        {/* Percentages Table */}
-        {activeTab === 'percentages' && (
-          <div className="overflow-x-auto border-4 border-gray-500 rounded-lg">
-            <table className="w-full border-collapse" style={{ border: '2px solid #9ca3af' }}>
-              <thead>
-                <tr className="border-b-4 border-gray-400">
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Offense</th>
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Always Eligible %</th>
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Job Dependent %</th>
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Always Review %</th>
-                </tr>
-              </thead>
-              <tbody>
-                {OFFENSES.map((off) => {
-                  const row = aggregate[off]
-                  return (
-                    <tr key={off} className="border-b-2 border-gray-300 hover:bg-gray-100">
-                      <td className="text-center py-8 px-10 text-4xl text-gray-900 font-medium" style={{ borderBottom: '2px solid #d1d5db' }}>{off}</td>
-                      <td className="text-center py-8 px-12" style={{ borderBottom: '2px solid #d1d5db' }}>
-                        {row ? <span className="pill pill-always-eligible text-9xl px-42 py-21">{row.pct.Green.toFixed(1)}%</span> : '—'}
-                      </td>
-                      <td className="text-center py-8 px-12" style={{ borderBottom: '2px solid #d1d5db' }}>
-                        {row ? <span className="pill pill-job-dependent text-9xl px-42 py-21">{row.pct.Yellow.toFixed(1)}%</span> : '—'}
-                      </td>
-                      <td className="text-center py-8 px-12" style={{ borderBottom: '2px solid #d1d5db' }}>
-                        {row ? <span className="pill pill-always-review text-9xl px-42 py-21">{row.pct.Red.toFixed(1)}%</span> : '—'}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Years Table */}
-        {activeTab === 'years' && (
-          <div className="overflow-x-auto border-4 border-gray-500 rounded-lg">
-            <table className="w-full border-collapse" style={{ border: '2px solid #9ca3af' }}>
-              <thead>
-                <tr className="border-b-4 border-gray-400">
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Offense</th>
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Mean yrs</th>
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Median yrs</th>
-                  <th className="text-center py-8 px-10 text-4xl font-semibold text-gray-700">Mode yrs</th>
-                </tr>
-              </thead>
-              <tbody>
-                {OFFENSES.map((off) => {
-                  const row = aggregate[off]
-                  return (
-                    <tr key={off} className="border-b-2 border-gray-300 hover:bg-gray-100">
-                      <td className="text-center py-8 px-10 text-4xl text-gray-900 font-medium">{off}</td>
-                      <td className="text-center py-8 px-10 text-4xl text-gray-700">{row && row.meanYears !== null ? row.meanYears.toFixed(2) : '—'}</td>
-                      <td className="text-center py-8 px-10 text-4xl text-gray-700">{row && row.medianYears !== null ? row.medianYears.toFixed(2) : '—'}</td>
-                      <td className="text-center py-8 px-10 text-4xl text-gray-700">{row && row.modeYears !== null ? String(row.modeYears) : '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="bg-gray-50 rounded-lg p-6">
-        <div 
-          className="flex items-center cursor-pointer hover:bg-gray-100 -mx-6 -mt-6 px-6 py-4 rounded-t-lg transition-colors"
-          onClick={() => setShowBatches(!showBatches)}
-        >
-          <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[#0F206C] mr-5 transition-colors" style={{ backgroundColor: '#0F206C' }}>
-            {showBatches ? (
-              <ChevronDown className="w-4 h-4 text-white" />
-            ) : (
-              <ChevronUp className="w-4 h-4 text-white" />
-            )}
-          </div>
-          <h3 className="text-3xl font-semibold text-gray-900">Most recent batches</h3>
-        </div>
-        
-        {showBatches && (
-          <div className="mt-4">
-            {loading ? (
-              <div className="text-2xl text-gray-600">Loading...</div>
-            ) : (
-              <ul className="space-y-3">
-                {batches.map((b) => (
-                  <li key={b.batch_id} className="bg-white p-3 rounded-md border border-gray-200">
-                    <div className="mb-1">
-                      <strong className="text-2xl text-gray-900">{b.submitted_by_name ?? 'Unknown'}</strong> —{' '}
-                      <small className="text-xl text-gray-500">{new Date(b.submitted_at ?? '').toLocaleString()}</small>
-                    </div>
-                    <div className="text-xl text-gray-600">
-                      {((b.responses || []) as DecisionRow[])
-                        .slice(0, 6)
-                        .map((r) => (
-                          `${r.offense_name}: ${r.decision_level}${r.look_back_period ? ` (${r.look_back_period}yr)` : ''}`
-                        ))
-                        .join(' — ')}
-                      {((b.responses || []) as DecisionRow[]).length > 6 && ' — …'}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </section>
     </div>
   )
 }

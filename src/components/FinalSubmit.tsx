@@ -4,11 +4,18 @@ import type { OffenseResponse } from './OffensePage'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Button } from './ui/button'
+import { ConfirmationModal } from './ConfirmationModal'
+import { NO_TIME_LIMIT } from '../App'
 
-export const FinalSubmit: React.FC<{ user: { username: string }; responses: OffenseResponse[] }> = ({ user, responses }) => {
+export const FinalSubmit: React.FC<{
+  user: { username: string }
+  responses: OffenseResponse[]
+  onBackToHome: () => void
+}> = ({ user, responses, onBackToHome }) => {
   const [interestEmail, setInterestEmail] = useState('')
   const [status, setStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
   const [batchId, setBatchId] = useState<string | null>(null)
+  const [showStartOverModal, setShowStartOverModal] = useState(false)
 
   const validateEmail = (email: string) => {
     const trimmed = email.trim()
@@ -19,29 +26,55 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     setStatus({ type: 'loading' })
 
-    // Prepare the payload that will go into Supabase
-    const payload = {
-      batch_id: crypto.randomUUID(), // Unique ID for this submission batch
-      username: user.username,
-      responses: responses.map(r => ({
-        offense_name: r.offense,
-        decision_level: r.decision,
-        look_back_period: r.lookBackYears,
-        notes: r.notes || null
-      })),
-      submitted_at: new Date().toISOString(),
-    }
+    // Prepare the responses
+    const responsesData = responses.map(r => ({
+      offense_name: r.offense,
+      decision_level: r.decision,
+      look_back_period: r.lookBackYears,
+      notes: r.notes || null
+    }))
 
     try {
-      // Submit the batch
-      const { error: batchError } = await supabase
+      // Check if batch exists for this username
+      const { data: existingBatch, error: fetchError } = await supabase
         .from('decisions_batch')
-        .insert(payload)
+        .select('batch_id')
+        .eq('username', user.username)
+        .single()
 
-      if (batchError) throw batchError
+      let finalBatchId: string
+
+      if (existingBatch) {
+        // Update existing batch
+        const { error: updateError } = await supabase
+          .from('decisions_batch')
+          .update({
+            responses: responsesData,
+            completed: true,
+            submitted_at: new Date().toISOString()
+          })
+          .eq('batch_id', existingBatch.batch_id)
+
+        if (updateError) throw updateError
+        finalBatchId = existingBatch.batch_id
+      } else {
+        // Insert new batch (shouldn't happen with new flow, but keep as fallback)
+        finalBatchId = crypto.randomUUID()
+        const { error: insertError } = await supabase
+          .from('decisions_batch')
+          .insert({
+            batch_id: finalBatchId,
+            username: user.username,
+            responses: responsesData,
+            completed: true,
+            submitted_at: new Date().toISOString()
+          })
+
+        if (insertError) throw insertError
+      }
 
       // If user provided an interest email, save it separately
       const validatedInterestEmail = validateEmail(interestEmail)
@@ -59,14 +92,30 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
         }
       }
 
-      setBatchId(payload.batch_id)
+      setBatchId(finalBatchId)
       setStatus({ type: 'success', message: 'Submission successful!' })
     } catch (err) {
       console.error('Submission error:', err)
-      setStatus({ 
+      setStatus({
         type: 'error',
         message: err instanceof Error ? err.message : 'Failed to submit. Please try again.'
       })
+    }
+  }
+
+  const handleStartOver = async () => {
+    try {
+      // Delete existing batch
+      await supabase
+        .from('decisions_batch')
+        .delete()
+        .eq('username', user.username)
+
+      // Reload page to start fresh
+      window.location.reload()
+    } catch (err) {
+      console.error('Error deleting batch:', err)
+      alert('Failed to delete responses. Please try again.')
     }
   }
 
@@ -76,17 +125,17 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
       
       {/* Action buttons - stacked on mobile, side by side on desktop */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <Button 
-          variant="outline" 
-          onClick={() => window.location.href = '/'}
+        <Button
+          onClick={onBackToHome}
+          variant="outline"
           className="w-full sm:w-auto"
         >
           Back to Home
         </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => window.location.reload()}
-          className="w-full sm:w-auto"
+        <Button
+          onClick={() => setShowStartOverModal(true)}
+          variant="outline"
+          className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50"
         >
           Start Over
         </Button>
@@ -163,7 +212,7 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
                     <td className="text-center py-2 pl-2 pr-1 sm:pl-6 sm:pr-3 text-xs sm:text-sm text-gray-900">{r.offense}</td>
                     <td className={`text-center py-2 px-1 sm:px-3 text-xs sm:text-sm text-gray-700 ${getDecisionBgColor(r.decision)}`}>{r.decision}</td>
                     <td className="text-center py-2 px-1 sm:px-3 text-xs sm:text-sm text-gray-700">
-                      {r.lookBackYears !== null ? `${r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}` : 'N/A'}
+                      {r.lookBackYears === 0 ? 'N/A' : r.lookBackYears === NO_TIME_LIMIT ? 'No time limit' : `${r.lookBackYears === 10 ? '10+' : r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}`}
                     </td>
                     <td className="text-center py-2 px-1 pr-2 sm:px-3 sm:pr-6 text-xs sm:text-sm text-gray-600">{r.notes || '—'}</td>
                   </tr>
@@ -192,6 +241,17 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
           Reference ID: <span className="font-mono">{batchId}</span>
         </p>
       )}
+
+      <ConfirmationModal
+        isOpen={showStartOverModal}
+        title="Start Over?"
+        message="This will permanently delete all your responses and take you back to the beginning. Are you sure you want to continue?"
+        confirmText="Yes, delete all responses"
+        cancelText="Return to results"
+        onConfirm={handleStartOver}
+        onCancel={() => setShowStartOverModal(false)}
+        variant="danger"
+      />
     </div>
   )
 }
