@@ -66,13 +66,13 @@ export const UsernameConflictModal: React.FC<UsernameConflictModalProps> = ({
         {isCompleted ? (
           // Scenario 1: Completed response exists
           <>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Username Already Exists</h2>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }} className="text-xl font-bold text-gray-900">Username Already Exists</h2>
+            <p style={{ marginBottom: '1.5rem' }} className="text-gray-600 leading-relaxed">
               A completed response already exists for the username <strong>"{username}"</strong>.
               Are you the person who submitted this response?
             </p>
 
-            <div className="flex flex-col gap-3">
+            <div style={{ gap: '1rem' }} className="flex flex-col">
               <Button
                 onClick={onConfirmIdentity}
                 className="w-full bg-[#0F206C] hover:bg-[#0a1855]"
@@ -91,13 +91,13 @@ export const UsernameConflictModal: React.FC<UsernameConflictModalProps> = ({
         ) : (
           // Scenario 2: Incomplete response exists
           <>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Resume Your Progress?</h2>
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }} className="text-xl font-bold text-gray-900">Resume Your Progress?</h2>
+            <p style={{ marginBottom: '1.5rem' }} className="text-gray-600 leading-relaxed">
               An incomplete response was found for <strong>"{username}"</strong>.
               Would you like to continue where you left off or start over?
             </p>
 
-            <div className="flex flex-col gap-3">
+            <div style={{ gap: '1rem' }} className="flex flex-col">
               <Button
                 onClick={onContinue}
                 className="w-full bg-[#0F206C] hover:bg-[#0a1855]"
