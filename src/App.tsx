@@ -513,11 +513,6 @@ const MainApp: React.FC = () => {
       }`}>
         <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
         <div className="max-w-4xl mx-auto p-6 flex-1 mb-8">
-          <div className="bg-white p-4 mb-6">
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</Button>
-            </div>
-          </div>
           {showAdmin ? (
             <div className="bg-white p-6">
               <div className="flex justify-between items-center mb-6">
