@@ -298,7 +298,7 @@ export default function AdminDashboard(): JSX.Element {
                 {batches.map((b) => (
                   <li key={b.batch_id} className="bg-white p-3 rounded-md border border-gray-200">
                     <div className="mb-1">
-                      <strong className="text-2xl text-gray-900">{b.submitted_by_name ?? 'Unknown'}</strong> —{' '}
+                      <strong className="text-2xl text-gray-900">{b.username ?? b.submitted_by_name ?? 'Unknown'}</strong> —{' '}
                       <small className="text-xl text-gray-500">{new Date(b.submitted_at ?? '').toLocaleString()}</small>
                     </div>
                     <div className="text-xl text-gray-600">

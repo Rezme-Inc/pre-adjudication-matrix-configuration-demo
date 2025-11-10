@@ -21,12 +21,21 @@ export const OffensePage: React.FC<{
   username: string
   onBack: () => void
   onNext: (resp: OffenseResponse) => void
-}> = ({ offense, index, total, username, onBack, onNext }) => {
-  const [decision, setDecision] = useState<'Always Eligible' | 'Job Dependent' | 'Always Review'>('Always Eligible')
-  const [lookBackYears, setLookBackYears] = useState<number | null>(null)
-  const [lookbackEnabled, setLookbackEnabled] = useState(false)
-  const [showSlider, setShowSlider] = useState(false)
-  const [notes, setNotes] = useState('')
+  existingResponse?: OffenseResponse
+}> = ({ offense, index, total, username, onBack, onNext, existingResponse }) => {
+  const [decision, setDecision] = useState<'Always Eligible' | 'Job Dependent' | 'Always Review'>(
+    existingResponse?.decision || 'Always Eligible'
+  )
+  const [lookBackYears, setLookBackYears] = useState<number | null>(
+    existingResponse?.lookBackYears || null
+  )
+  const [lookbackEnabled, setLookbackEnabled] = useState(
+    existingResponse?.decision !== 'Always Eligible' && existingResponse?.lookBackYears !== null
+  )
+  const [showSlider, setShowSlider] = useState(
+    existingResponse?.decision !== 'Always Eligible' && existingResponse?.lookBackYears !== null
+  )
+  const [notes, setNotes] = useState(existingResponse?.notes || '')
   const [isSaving, setIsSaving] = useState(false)
 
   // Map decision to radio value

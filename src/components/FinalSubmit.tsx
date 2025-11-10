@@ -4,11 +4,17 @@ import type { OffenseResponse } from './OffensePage'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Button } from './ui/button'
+import { ConfirmationModal } from './ConfirmationModal'
 
-export const FinalSubmit: React.FC<{ user: { username: string }; responses: OffenseResponse[] }> = ({ user, responses }) => {
+export const FinalSubmit: React.FC<{
+  user: { username: string }
+  responses: OffenseResponse[]
+  onBackToHome: () => void
+}> = ({ user, responses, onBackToHome }) => {
   const [interestEmail, setInterestEmail] = useState('')
   const [status, setStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
   const [batchId, setBatchId] = useState<string | null>(null)
+  const [showStartOverModal, setShowStartOverModal] = useState(false)
 
   const validateEmail = (email: string) => {
     const trimmed = email.trim()
@@ -19,29 +25,55 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     setStatus({ type: 'loading' })
 
-    // Prepare the payload that will go into Supabase
-    const payload = {
-      batch_id: crypto.randomUUID(), // Unique ID for this submission batch
-      username: user.username,
-      responses: responses.map(r => ({
-        offense_name: r.offense,
-        decision_level: r.decision,
-        look_back_period: r.lookBackYears,
-        notes: r.notes || null
-      })),
-      submitted_at: new Date().toISOString(),
-    }
+    // Prepare the responses
+    const responsesData = responses.map(r => ({
+      offense_name: r.offense,
+      decision_level: r.decision,
+      look_back_period: r.lookBackYears,
+      notes: r.notes || null
+    }))
 
     try {
-      // Submit the batch
-      const { error: batchError } = await supabase
+      // Check if batch exists for this username
+      const { data: existingBatch, error: fetchError } = await supabase
         .from('decisions_batch')
-        .insert(payload)
+        .select('batch_id')
+        .eq('username', user.username)
+        .single()
 
-      if (batchError) throw batchError
+      let finalBatchId: string
+
+      if (existingBatch) {
+        // Update existing batch
+        const { error: updateError } = await supabase
+          .from('decisions_batch')
+          .update({
+            responses: responsesData,
+            completed: true,
+            submitted_at: new Date().toISOString()
+          })
+          .eq('batch_id', existingBatch.batch_id)
+
+        if (updateError) throw updateError
+        finalBatchId = existingBatch.batch_id
+      } else {
+        // Insert new batch (shouldn't happen with new flow, but keep as fallback)
+        finalBatchId = crypto.randomUUID()
+        const { error: insertError } = await supabase
+          .from('decisions_batch')
+          .insert({
+            batch_id: finalBatchId,
+            username: user.username,
+            responses: responsesData,
+            completed: true,
+            submitted_at: new Date().toISOString()
+          })
+
+        if (insertError) throw insertError
+      }
 
       // If user provided an interest email, save it separately
       const validatedInterestEmail = validateEmail(interestEmail)
@@ -59,20 +91,53 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
         }
       }
 
-      setBatchId(payload.batch_id)
+      setBatchId(finalBatchId)
       setStatus({ type: 'success', message: 'Submission successful!' })
     } catch (err) {
       console.error('Submission error:', err)
-      setStatus({ 
+      setStatus({
         type: 'error',
         message: err instanceof Error ? err.message : 'Failed to submit. Please try again.'
       })
     }
   }
 
+  const handleStartOver = async () => {
+    try {
+      // Delete existing batch
+      await supabase
+        .from('decisions_batch')
+        .delete()
+        .eq('username', user.username)
+
+      // Reload page to start fresh
+      window.location.reload()
+    } catch (err) {
+      console.error('Error deleting batch:', err)
+      alert('Failed to delete responses. Please try again.')
+    }
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
-      <p className="text-gray-600">Your {responses.length} offense assessments have been successfully recorded.</p>
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-gray-600">Your {responses.length} offense assessments have been successfully recorded.</p>
+        <div className="flex gap-3">
+          <Button
+            onClick={onBackToHome}
+            variant="outline"
+          >
+            Back to Home
+          </Button>
+          <Button
+            onClick={() => setShowStartOverModal(true)}
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-50"
+          >
+            Start Over
+          </Button>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit}>
         <div style={{
@@ -174,6 +239,17 @@ export const FinalSubmit: React.FC<{ user: { username: string }; responses: Offe
           Reference ID: <span className="font-mono">{batchId}</span>
         </p>
       )}
+
+      <ConfirmationModal
+        isOpen={showStartOverModal}
+        title="Start Over?"
+        message="This will permanently delete all your responses and take you back to the beginning. Are you sure you want to continue?"
+        confirmText="Yes, delete all responses"
+        cancelText="Return to results"
+        onConfirm={handleStartOver}
+        onCancel={() => setShowStartOverModal(false)}
+        variant="danger"
+      />
     </div>
   )
 }
