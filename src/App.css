@@ -2,7 +2,8 @@
 @import './styles/globals.css';
 
 /* Remove any grey borders from body/html */
-body, html {
+body,
+html {
   border: none !important;
   outline: none !important;
 }
@@ -44,6 +45,7 @@ body, html {
     opacity: 0;
     transform: translateX(30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -55,6 +57,7 @@ body, html {
     opacity: 1;
     transform: translateX(0);
   }
+
   to {
     opacity: 0;
     transform: translateX(-30px);
