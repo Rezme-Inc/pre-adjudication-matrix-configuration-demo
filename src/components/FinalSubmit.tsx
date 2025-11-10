@@ -5,6 +5,7 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Button } from './ui/button'
 import { ConfirmationModal } from './ConfirmationModal'
+import { NO_TIME_LIMIT } from '../App'
 
 export const FinalSubmit: React.FC<{
   user: { username: string }
@@ -210,7 +211,7 @@ export const FinalSubmit: React.FC<{
                     <td className="text-center py-2 pl-6 pr-3 text-sm text-gray-900">{r.offense}</td>
                     <td className={`text-center py-2 px-3 text-sm text-gray-700 ${getDecisionBgColor(r.decision)}`}>{r.decision}</td>
                     <td className="text-center py-2 px-3 text-sm text-gray-700">
-                      {r.lookBackYears !== null ? `${r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}` : 'N/A'}
+                      {r.lookBackYears === 0 ? 'N/A' : r.lookBackYears === NO_TIME_LIMIT ? 'No time limit' : `${r.lookBackYears === 10 ? '10+' : r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}`}
                     </td>
                     <td className="text-center py-2 px-3 pr-6 text-sm text-gray-600">{r.notes || '—'}</td>
                   </tr>

@@ -6,11 +6,12 @@ import { Slider } from './ui/slider'
 import { Checkbox } from './ui/checkbox'
 import { Textarea } from './ui/textarea'
 import { Button } from './ui/button'
+import { NO_TIME_LIMIT } from '../App'
 
 export type OffenseResponse = {
   offense: string
   decision: 'Always Eligible' | 'Job Dependent' | 'Always Review'
-  lookBackYears: number | null
+  lookBackYears: number
   notes?: string
 }
 
@@ -26,14 +27,14 @@ export const OffensePage: React.FC<{
   const [decision, setDecision] = useState<'Always Eligible' | 'Job Dependent' | 'Always Review'>(
     existingResponse?.decision || 'Always Eligible'
   )
-  const [lookBackYears, setLookBackYears] = useState<number | null>(
-    existingResponse?.lookBackYears || null
+  const [lookBackYears, setLookBackYears] = useState<number>(
+    existingResponse?.lookBackYears ?? 0
   )
   const [lookbackEnabled, setLookbackEnabled] = useState(
-    existingResponse?.decision !== 'Always Eligible' && existingResponse?.lookBackYears !== null
+    existingResponse?.decision !== 'Always Eligible' && existingResponse?.lookBackYears !== NO_TIME_LIMIT && existingResponse?.lookBackYears !== 0
   )
   const [showSlider, setShowSlider] = useState(
-    existingResponse?.decision !== 'Always Eligible' && existingResponse?.lookBackYears !== null
+    existingResponse?.decision !== 'Always Eligible' && existingResponse?.lookBackYears !== NO_TIME_LIMIT && existingResponse?.lookBackYears !== 0
   )
   const [notes, setNotes] = useState(existingResponse?.notes || '')
   const [isSaving, setIsSaving] = useState(false)
@@ -50,11 +51,11 @@ export const OffensePage: React.FC<{
       setShowSlider(false)
       setTimeout(() => {
         setLookbackEnabled(false)
-        setLookBackYears(null)
+        setLookBackYears(0)
       }, 200)
     } else {
       // Fade in checkbox first, then slider
-      if (lookBackYears === null) {
+      if (lookBackYears === 0 || lookBackYears === NO_TIME_LIMIT) {
         setLookBackYears(1)
       }
       setLookbackEnabled(true)
@@ -158,7 +159,7 @@ export const OffensePage: React.FC<{
   }
 
   // Convert years to slider value
-  const sliderValue = lookBackYears !== null ? lookBackYears : 1
+  const sliderValue = (lookBackYears > 0 && lookBackYears < NO_TIME_LIMIT) ? lookBackYears : 1
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -225,13 +226,13 @@ export const OffensePage: React.FC<{
           : 'opacity-100'
       }`}>
         <div className="flex items-center space-x-3">
-          <Checkbox 
-            id="lookback" 
+          <Checkbox
+            id="lookback"
             checked={lookbackEnabled}
             onCheckedChange={(checked) => {
               if (checked) {
                 setLookbackEnabled(true)
-                if (lookBackYears === null) {
+                if (lookBackYears === NO_TIME_LIMIT || lookBackYears === 0) {
                   setLookBackYears(1)
                 }
                 setTimeout(() => {
@@ -241,6 +242,7 @@ export const OffensePage: React.FC<{
                 setShowSlider(false)
                 setTimeout(() => {
                   setLookbackEnabled(false)
+                  setLookBackYears(NO_TIME_LIMIT)
                 }, 200)
               }
             }}

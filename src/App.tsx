@@ -19,7 +19,7 @@ type User = {
 type OffenseResponse = {
   offense: string
   decision: 'Always Eligible' | 'Job Dependent' | 'Always Review'
-  lookBackYears: number | null
+  lookBackYears: number
   notes?: string
 }
 
@@ -49,6 +49,9 @@ const OFFENSES = [
 
 // We'll run the user through the FIRST_N_OFFENSES (user asked for 12 offenses)
 const FIRST_N_OFFENSES = 9
+
+// Constant for "No time limit" lookback period
+export const NO_TIME_LIMIT = 25
 
 const Header: React.FC<{ onMenuClick: () => void; onInfoClick: () => void; showButtons?: boolean }> = ({ onMenuClick, onInfoClick, showButtons = true }) => {
   return (
