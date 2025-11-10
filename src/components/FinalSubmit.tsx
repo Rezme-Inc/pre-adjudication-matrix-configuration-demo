@@ -121,23 +121,24 @@ export const FinalSubmit: React.FC<{
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-gray-600">Your {responses.length} offense assessments have been successfully recorded.</p>
-        <div className="flex gap-3">
-          <Button
-            onClick={onBackToHome}
-            variant="outline"
-          >
-            Back to Home
-          </Button>
-          <Button
-            onClick={() => setShowStartOverModal(true)}
-            variant="outline"
-            className="border-red-300 text-red-700 hover:bg-red-50"
-          >
-            Start Over
-          </Button>
-        </div>
+      <p className="text-gray-600">Your {responses.length} offense assessments have been successfully recorded.</p>
+      
+      {/* Action buttons - stacked on mobile, side by side on desktop */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <Button
+          onClick={onBackToHome}
+          variant="outline"
+          className="w-full sm:w-auto"
+        >
+          Back to Home
+        </Button>
+        <Button
+          onClick={() => setShowStartOverModal(true)}
+          variant="outline"
+          className="w-full sm:w-auto border-red-300 text-red-700 hover:bg-red-50"
+        >
+          Start Over
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -149,17 +150,17 @@ export const FinalSubmit: React.FC<{
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
           marginTop: '16px'
         }}>
-          <div className="form-group" style={{ marginBottom: 16 }}>
+        <div className="form-group" style={{ marginBottom: 16 }}>
             <label htmlFor="interestEmail" style={{ fontWeight: 500, fontSize: '15px' }}>Email (optional)</label>
             <small style={{ display: 'block', marginTop: 4, marginBottom: 12, color: '#666', lineHeight: '1.5' }}>
             If you would like to receive the results and resources from this session and access to a customized tool for HPS participants please enter your email address.</small>
-            <input
-              id="interestEmail"
-              type="email"
-              value={interestEmail}
-              onChange={(e) => setInterestEmail(e.target.value)}
-              placeholder="your.email@example.com"
-              disabled={status.type === 'loading' || status.type === 'success'}
+          <input
+            id="interestEmail"
+            type="email"
+            value={interestEmail}
+            onChange={(e) => setInterestEmail(e.target.value)}
+            placeholder="your.email@example.com"
+            disabled={status.type === 'loading' || status.type === 'success'}
               style={{
                 width: '100%',
                 padding: '10px 14px',
@@ -172,30 +173,30 @@ export const FinalSubmit: React.FC<{
               onFocus={(e) => e.target.style.border = '2px solid #0F206C'}
               onBlur={(e) => e.target.style.border = '1px solid #d1d5db'}
             />
-          </div>
-          <Button 
-            type="submit" 
-            disabled={status.type === 'loading' || status.type === 'success'}
-            className="w-full"
-          >
+        </div>
+        <Button 
+          type="submit" 
+          disabled={status.type === 'loading' || status.type === 'success'}
+          className="w-full"
+        >
             {status.type === 'loading' 
               ? 'Submitting...' 
               : status.type === 'success' 
               ? 'Email Submitted ✓' 
               : 'Submit Email'}
-          </Button>
+        </Button>
         </div>
       </form>
 
-      <div className="bg-gray-50 rounded-lg -mx-6">
-        <div className="overflow-x-auto">
+      <div className="bg-gray-50 rounded-lg mx-0 sm:-mx-6">
+        <div className="overflow-x-auto px-2 sm:px-0">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-gray-300">
-                <th className="text-center py-2 pl-6 pr-3 text-sm font-semibold text-gray-700">Criminal Offense</th>
-                <th className="text-center py-2 px-3 text-sm font-semibold text-gray-700">Review Option</th>
-                <th className="text-center py-2 px-3 text-sm font-semibold text-gray-700">Lookback Period</th>
-                <th className="text-center py-2 px-3 pr-6 text-sm font-semibold text-gray-700">Notes</th>
+                <th className="text-center py-2 pl-2 pr-1 sm:pl-6 sm:pr-3 text-xs sm:text-sm font-semibold text-gray-700">Criminal Offense</th>
+                <th className="text-center py-2 px-1 sm:px-3 text-xs sm:text-sm font-semibold text-gray-700">Review Option</th>
+                <th className="text-center py-2 px-1 sm:px-3 text-xs sm:text-sm font-semibold text-gray-700">Lookback Period</th>
+                <th className="text-center py-2 px-1 pr-2 sm:px-3 sm:pr-6 text-xs sm:text-sm font-semibold text-gray-700">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -208,12 +209,12 @@ export const FinalSubmit: React.FC<{
                 }
                 return (
                   <tr key={i} className="border-b border-gray-200 hover:bg-gray-100">
-                    <td className="text-center py-2 pl-6 pr-3 text-sm text-gray-900">{r.offense}</td>
-                    <td className={`text-center py-2 px-3 text-sm text-gray-700 ${getDecisionBgColor(r.decision)}`}>{r.decision}</td>
-                    <td className="text-center py-2 px-3 text-sm text-gray-700">
+                    <td className="text-center py-2 pl-2 pr-1 sm:pl-6 sm:pr-3 text-xs sm:text-sm text-gray-900">{r.offense}</td>
+                    <td className={`text-center py-2 px-1 sm:px-3 text-xs sm:text-sm text-gray-700 ${getDecisionBgColor(r.decision)}`}>{r.decision}</td>
+                    <td className="text-center py-2 px-1 sm:px-3 text-xs sm:text-sm text-gray-700">
                       {r.lookBackYears === 0 ? 'N/A' : r.lookBackYears === NO_TIME_LIMIT ? 'No time limit' : `${r.lookBackYears === 10 ? '10+' : r.lookBackYears} ${r.lookBackYears === 1 ? 'year' : 'years'}`}
                     </td>
-                    <td className="text-center py-2 px-3 pr-6 text-sm text-gray-600">{r.notes || '—'}</td>
+                    <td className="text-center py-2 px-1 pr-2 sm:px-3 sm:pr-6 text-xs sm:text-sm text-gray-600">{r.notes || '—'}</td>
                   </tr>
                 )
               })}

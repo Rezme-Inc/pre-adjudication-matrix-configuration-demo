@@ -70,11 +70,10 @@ const Header: React.FC<{ onMenuClick: () => void; onInfoClick: () => void; showB
           </div>
           <button
             onClick={onInfoClick}
-            className="px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0 flex items-center gap-2"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             aria-label="Info"
           >
-            <Info className="w-5 h-5 text-gray-700" />
-            <span className="text-sm font-medium text-gray-700 hidden sm:inline">View Categories</span>
+            <Info className="w-6 h-6 text-gray-700" />
           </button>
         </>
       ) : (
