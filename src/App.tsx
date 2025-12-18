@@ -21,6 +21,7 @@ type OffenseResponse = {
   decision: 'Always Eligible' | 'Job Dependent' | 'Always Review'
   lookBackYears: number
   notes?: string
+  job_specific_risk_tags?: string[] | null
 }
 
 const OFFENSES = [
@@ -656,8 +657,24 @@ const MainApp: React.FC = () => {
               <p className="text-gray-700 mb-4 leading-relaxed">
                 This conviction may be relevant to some jobs at our company, but would not be relevant to others. The conviction will be subject to further review if the candidate is applying for a position with duties or risks relevant to the conviction.
               </p>
-              <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-2 inline-block">
+              <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-2 inline-block mb-4">
                 <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
+              </div>
+              
+              {/* Risk Tag Definitions */}
+              <div className="mt-4 pt-4 border-t border-gray-300">
+                <h3 className="text-base font-semibold mb-2 text-gray-900">Job-Specific Risk Categories:</h3>
+                <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                  <li><span className="font-normal text-gray-900">Access to company assets and/or financial documents:</span> Access to a company credit card, confidential financial information systems, or oversight of financial processes</li>
+                  <li><span className="font-normal text-gray-900">Access to employee information:</span> Social Security numbers, banking/routing numbers</li>
+                  <li><span className="font-normal text-gray-900">Operating Machinery/Driving:</span> Operate machinery or drive as an essential component of the role</li>
+                  <li><span className="font-normal text-gray-900">Access to vulnerable populations:</span> Working with individuals classified as vulnerable populations, such as the elderly, children, or those with disabilities</li>
+                  <li><span className="font-normal text-gray-900">Access to Materials with a Concern of Theft:</span> Materials with a significant cash value that would impact the employer, or access to materials that are at a high risk of theft</li>
+                  <li><span className="font-normal text-gray-900">Off-Site Work:</span> Working at a location that is not company-owned</li>
+                  <li><span className="font-normal text-gray-900">Direct Reports:</span> Contractors or employees</li>
+                  <li><span className="font-normal text-gray-900">Interfacing with Customers/Clients:</span> Selling to, managing, or communicating with external customers and clients</li>
+                  <li><span className="font-normal text-gray-900">Senior Management Position:</span> Uniquely positioned and/or high profile role</li>
+                </ul>
               </div>
             </div>
 

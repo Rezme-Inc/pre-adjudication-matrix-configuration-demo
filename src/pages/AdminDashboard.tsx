@@ -8,6 +8,7 @@ type DecisionRow = {
   decision_level: 'Always Eligible' | 'Job Dependent' | 'Always Review'
   look_back_period: number
   notes?: string | null
+  job_specific_risk_tags?: string[] | null
 }
 
 type BatchRow = {
@@ -47,7 +48,7 @@ export default function AdminDashboard(): JSX.Element {
   const [batches, setBatches] = useState<BatchRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'percentages' | 'years'>('percentages')
+  const [activeTab, setActiveTab] = useState<'percentages' | 'years' | 'riskTags'>('percentages')
   const [showBatches, setShowBatches] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -259,6 +260,28 @@ export default function AdminDashboard(): JSX.Element {
             >
               Lookback Period
             </button>
+            <button
+              onClick={() => setActiveTab('riskTags')}
+              style={{
+                paddingLeft: '2rem',
+                paddingRight: '2rem',
+                paddingTop: '0.5rem',
+                paddingBottom: '0.5rem',
+                fontSize: '1.125rem',
+                fontWeight: '800',
+                borderRadius: '0.5rem 0.5rem 0 0',
+                backgroundColor: activeTab === 'riskTags' ? '#0F206C' : '#f3f4f6',
+                color: activeTab === 'riskTags' ? 'white' : '#374151',
+                borderWidth: '2px',
+                borderBottomWidth: activeTab === 'riskTags' ? '0' : '2px',
+                borderColor: activeTab === 'riskTags' ? '#0F206C' : '#d1d5db',
+                borderStyle: 'solid',
+                cursor: 'pointer'
+              }}
+              className="transition-all"
+            >
+              Risk Tags
+            </button>
           </div>
 
           <div style={{ borderTopWidth: '3px', borderColor: '#0F206C', borderStyle: 'solid' }}></div>
@@ -305,6 +328,81 @@ export default function AdminDashboard(): JSX.Element {
                       </tr>
                     )
                   })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Risk Tags Table */}
+          {activeTab === 'riskTags' && (
+            <div style={{ padding: '2rem' }} className="overflow-x-auto">
+              <div className="mb-4">
+                <p className="text-gray-600 text-sm">
+                  Showing frequency of risk tags selected for "Job Dependent" decisions
+                </p>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f3f4f6', borderBottomWidth: '2px', borderBottomColor: '#d1d5db', borderBottomStyle: 'solid' }}>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'left', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Risk Tag</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Count</th>
+                    <th style={{ paddingTop: '0.75rem', paddingBottom: '0.75rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center', fontSize: '1rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="text-gray-900">Percentage</th>
+                  </tr>
+                </thead>
+                <tbody style={{ backgroundColor: 'white' }}>
+                  {(() => {
+                    // Aggregate risk tags across all Job Dependent responses
+                    const tagCounts = new Map<string, number>()
+                    let totalJobDependentCount = 0
+                    
+                    batches.forEach((b) => {
+                      const responses = (b.responses as DecisionRow[]) || []
+                      responses.forEach((r) => {
+                        if (r.decision_level === 'Job Dependent' && r.job_specific_risk_tags && Array.isArray(r.job_specific_risk_tags)) {
+                          // Exclude 'always review' marker and empty arrays
+                          if (!r.job_specific_risk_tags.includes('always review') && r.job_specific_risk_tags.length > 0) {
+                            totalJobDependentCount++
+                            r.job_specific_risk_tags.forEach(tag => {
+                              tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
+                            })
+                          }
+                        }
+                      })
+                    })
+                    
+                    // Sort tags by frequency (descending)
+                    const sortedTags = Array.from(tagCounts.entries())
+                      .sort((a, b) => b[1] - a[1])
+                    
+                    if (sortedTags.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={3} style={{ paddingTop: '2rem', paddingBottom: '2rem', textAlign: 'center', fontSize: '1rem' }} className="text-gray-500">
+                            No risk tags selected yet
+                          </td>
+                        </tr>
+                      )
+                    }
+                    
+                    return sortedTags.map(([tag, count], idx) => {
+                      const percentage = totalJobDependentCount > 0 ? (count / totalJobDependentCount) * 100 : 0
+                      return (
+                        <tr key={tag} style={{ borderBottomWidth: idx !== sortedTags.length - 1 ? '1px' : '0', borderBottomColor: '#e5e7eb', borderBottomStyle: 'solid' }} className="hover:bg-gray-50 transition-colors">
+                          <td style={{ paddingTop: '1rem', paddingBottom: '1rem', paddingLeft: '2rem', paddingRight: '2rem', fontSize: '1rem', fontWeight: '600' }} className="text-gray-900">{tag}</td>
+                          <td style={{ paddingTop: '1rem', paddingBottom: '1rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center' }}>
+                            <span style={{ backgroundColor: '#a855f7', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '1rem', paddingRight: '1rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', borderRadius: '9999px', fontSize: '1rem', fontWeight: '700', minWidth: '60px' }}>
+                              {count}
+                            </span>
+                          </td>
+                          <td style={{ paddingTop: '1rem', paddingBottom: '1rem', paddingLeft: '2rem', paddingRight: '2rem', textAlign: 'center' }}>
+                            <span style={{ backgroundColor: '#a855f7', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '1rem', paddingRight: '1rem', paddingTop: '0.5rem', paddingBottom: '0.5rem', borderRadius: '9999px', fontSize: '1rem', fontWeight: '700', minWidth: '80px' }}>
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  })()}
                 </tbody>
               </table>
             </div>
