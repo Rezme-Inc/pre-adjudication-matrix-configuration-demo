@@ -1,4 +1,5 @@
 import { Button } from './ui/button';
+import { Info } from 'lucide-react';
 
 interface CategorySelectionPageProps {
   onSelectCategory: (category: string) => void;
@@ -17,7 +18,17 @@ export function CategorySelectionPage({ onSelectCategory, onBack }: CategorySele
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-white rounded-lg shadow-lg p-8 relative">
+          {/* Info icon in top-right corner */}
+          <button
+            onClick={onBack}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            title="View instructions and decision options"
+            aria-label="View instructions"
+          >
+            <Info size={24} style={{ color: '#0F206C' }} />
+          </button>
+
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-center mb-2" style={{ color: '#0F206C' }}>
               Select Offense Category
@@ -27,7 +38,7 @@ export function CategorySelectionPage({ onSelectCategory, onBack }: CategorySele
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {CATEGORIES.map((category) => (
               <button
                 key={category.name}
@@ -45,16 +56,6 @@ export function CategorySelectionPage({ onSelectCategory, onBack }: CategorySele
                 </div>
               </button>
             ))}
-          </div>
-
-          <div className="flex justify-center">
-            <Button
-              onClick={onBack}
-              variant="outline"
-              className="px-6"
-            >
-              Back
-            </Button>
           </div>
         </div>
       </div>
