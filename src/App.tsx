@@ -11,6 +11,11 @@ import { UsernameConflictModal } from './components/UsernameConflictModal'
 import logoImage from './assets/image (1).png'
 import footerImage from './assets/c6e44e69-4cca-4741-b366-9f882b52ec8a.png'
 import envoyLogo from './assets/08a0f5_fc930def25264a5795c1219c8cfd69ba~mv2.gif'
+import { CategorySelectionPage } from './components/CategorySelectionPage'
+import { SecondOrderModePage } from './components/SecondOrderModePage'
+import { AggregateDecisionPage, AggregateDecisionData } from './components/AggregateDecisionPage'
+import { IndividualDecisionPage, IndividualDecisionData } from './components/IndividualDecisionPage'
+import { OFFENSE_HIERARCHY, HierarchicalResponse, getCategoryByName, getTotalSecondOrderGroups, getTotalFirstOrderOffenses } from './data/offenseHierarchy'
 
 type User = {
   username: string
@@ -203,6 +208,17 @@ const MainApp: React.FC = () => {
   const [showUsernameConflict, setShowUsernameConflict] = useState(false)
   const [existingBatchData, setExistingBatchData] = useState<any>(null)
   const [pendingUsername, setPendingUsername] = useState('')
+  
+  // Hierarchical workflow state
+  const [workflowMode, setWorkflowMode] = useState<'original' | 'hierarchical' | null>(null)
+  const [showModeSelection, setShowModeSelection] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [currentSecondOrderIndex, setCurrentSecondOrderIndex] = useState(0)
+  const [currentFirstOrderIndex, setCurrentFirstOrderIndex] = useState(0)
+  const [secondOrderModeChoices, setSecondOrderModeChoices] = useState<Map<string, 'aggregate' | 'individual'>>(new Map())
+  const [hierarchicalResponses, setHierarchicalResponses] = useState<HierarchicalResponse[]>([])
+  const [showSecondOrderMode, setShowSecondOrderMode] = useState(false)
+  const [showCategorySelection, setShowCategorySelection] = useState(false)
 
   // Mark as completed when reaching final page
   React.useEffect(() => {
@@ -302,8 +318,9 @@ const MainApp: React.FC = () => {
         setResponses([])
         setIsTransitioning(false)
         setIsPageTransitioning(false)
+        // Show mode selection instead of instructions directly
         setTimeout(() => {
-          setShowInstructions(true)
+          setShowModeSelection(true)
         }, 10)
       }, 400)
     } catch (err) {
@@ -317,7 +334,7 @@ const MainApp: React.FC = () => {
         setIsTransitioning(false)
         setIsPageTransitioning(false)
         setTimeout(() => {
-          setShowInstructions(true)
+          setShowModeSelection(true)
         }, 10)
       }, 400)
     }
@@ -328,6 +345,9 @@ const MainApp: React.FC = () => {
     setTimeout(() => {
       setShowInstructions(false)
       setTimeout(() => {
+        if (workflowMode === 'hierarchical') {
+          setShowCategorySelection(true)
+        }
         setIsPageTransitioning(false)
       }, 50)
     }, 400)
@@ -431,18 +451,42 @@ const MainApp: React.FC = () => {
     setIsPageTransitioning(true)
 
     setTimeout(() => {
-      // Load existing responses and go to final page
-      const savedResponses = existingBatchData.responses || []
-      const convertedResponses: OffenseResponse[] = savedResponses.map((r: any) => ({
-        offense: r.offense_name,
-        decision: r.decision_level,
-        lookBackYears: r.look_back_period,
-        notes: r.notes
-      }))
+      // Check if this is hierarchical or original workflow
+      const hierarchicalData = existingBatchData.hierarchical_responses || []
+      const originalData = existingBatchData.responses || []
 
-      setUser({ username: pendingUsername })
-      setResponses(convertedResponses)
-      setCurrentIndex(FIRST_N_OFFENSES) // Go to final page
+      if (hierarchicalData.length > 0) {
+        // Load hierarchical responses
+        const convertedHierarchicalResponses: HierarchicalResponse[] = hierarchicalData.map((r: any) => ({
+          category: r.category,
+          secondOrder: r.second_order,
+          firstOrder: r.first_order,
+          isAggregate: r.is_aggregate,
+          decision: r.decision_level,
+          lookBackYears: r.look_back_period,
+          notes: r.notes,
+        }))
+
+        setUser({ username: pendingUsername })
+        setWorkflowMode('hierarchical')
+        setHierarchicalResponses(convertedHierarchicalResponses)
+        // Show final page or summary for hierarchical
+        setShowCategorySelection(true)
+      } else {
+        // Load original responses and go to final page
+        const convertedResponses: OffenseResponse[] = originalData.map((r: any) => ({
+          offense: r.offense_name,
+          decision: r.decision_level,
+          lookBackYears: r.look_back_period,
+          notes: r.notes
+        }))
+
+        setUser({ username: pendingUsername })
+        setWorkflowMode('original')
+        setResponses(convertedResponses)
+        setCurrentIndex(FIRST_N_OFFENSES) // Go to final page
+      }
+      
       setIsPageTransitioning(false)
     }, 400)
   }
@@ -463,31 +507,54 @@ const MainApp: React.FC = () => {
     setIsPageTransitioning(true)
 
     setTimeout(() => {
-      const savedResponses = existingBatchData.responses || []
-      const convertedResponses: OffenseResponse[] = savedResponses.map((r: any) => ({
-        offense: r.offense_name,
-        decision: r.decision_level,
-        lookBackYears: r.look_back_period,
-        notes: r.notes
-      }))
+      const hierarchicalData = existingBatchData.hierarchical_responses || []
+      const originalData = existingBatchData.responses || []
 
-      const nextIndex = findNextQuestionIndex(savedResponses)
+      if (hierarchicalData.length > 0) {
+        // Restore hierarchical workflow state
+        const convertedHierarchicalResponses: HierarchicalResponse[] = hierarchicalData.map((r: any) => ({
+          category: r.category,
+          secondOrder: r.second_order,
+          firstOrder: r.first_order,
+          isAggregate: r.is_aggregate,
+          decision: r.decision_level,
+          lookBackYears: r.look_back_period,
+          notes: r.notes,
+        }))
 
-      setUser({ username: pendingUsername })
-      setResponses(convertedResponses)
-      setCurrentIndex(nextIndex)
-      setIsTransitioning(false)
-      setIsPageTransitioning(false)
-
-      // If all questions answered, go directly to final page (don't show instructions)
-      if (nextIndex >= FIRST_N_OFFENSES) {
-        // responses.length >= FIRST_N_OFFENSES will trigger final page render
-        // Do nothing - the component will render the final page
+        setUser({ username: pendingUsername })
+        setWorkflowMode('hierarchical')
+        setHierarchicalResponses(convertedHierarchicalResponses)
+        setShowModeSelection(true) // Let user continue from mode selection
+        setIsPageTransitioning(false)
       } else {
-        // Show instructions first, then questions
-        setTimeout(() => {
-          setShowInstructions(true)
-        }, 10)
+        // Original workflow
+        const convertedResponses: OffenseResponse[] = originalData.map((r: any) => ({
+          offense: r.offense_name,
+          decision: r.decision_level,
+          lookBackYears: r.look_back_period,
+          notes: r.notes
+        }))
+
+        const nextIndex = findNextQuestionIndex(originalData)
+
+        setUser({ username: pendingUsername })
+        setWorkflowMode('original')
+        setResponses(convertedResponses)
+        setCurrentIndex(nextIndex)
+        setIsTransitioning(false)
+        setIsPageTransitioning(false)
+
+        // If all questions answered, go directly to final page (don't show instructions)
+        if (nextIndex >= FIRST_N_OFFENSES) {
+          // responses.length >= FIRST_N_OFFENSES will trigger final page render
+          // Do nothing - the component will render the final page
+        } else {
+          // Show instructions first, then questions
+          setTimeout(() => {
+            setShowInstructions(true)
+          }, 10)
+        }
       }
     }, 400)
   }
@@ -510,10 +577,12 @@ const MainApp: React.FC = () => {
         setUser({ username: pendingUsername })
         setCurrentIndex(0)
         setResponses([])
+        setHierarchicalResponses([])
+        setWorkflowMode(null)
         setIsTransitioning(false)
         setIsPageTransitioning(false)
         setTimeout(() => {
-          setShowInstructions(true)
+          setShowModeSelection(true)
         }, 10)
       }, 400)
     } catch (err) {
@@ -528,6 +597,302 @@ const MainApp: React.FC = () => {
     setPendingUsername('')
     setExistingBatchData(null)
     // User stays on login screen
+  }
+
+  // Hierarchical workflow handlers
+  const handleModeSelection = (mode: 'original' | 'hierarchical') => {
+    setWorkflowMode(mode)
+    setShowModeSelection(false)
+    setIsPageTransitioning(true)
+    
+    setTimeout(() => {
+      if (mode === 'hierarchical') {
+        setShowCategorySelection(true)
+      }
+      setIsPageTransitioning(false)
+      setTimeout(() => {
+        setShowInstructions(true)
+      }, 10)
+    }, 400)
+  }
+
+  const handleCategorySelection = (category: string) => {
+    setSelectedCategory(category)
+    setCurrentSecondOrderIndex(0)
+    setShowCategorySelection(false)
+    setShowSecondOrderMode(true)
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setIsTransitioning(false)
+    }, 300)
+  }
+
+  const handleSecondOrderModeSelection = async (mode: 'aggregate' | 'individual') => {
+    if (!selectedCategory || !user) return
+    
+    const category = getCategoryByName(selectedCategory)
+    if (!category) return
+    
+    const secondOrderGroup = category.secondOrderGroups[currentSecondOrderIndex]
+    const key = `${selectedCategory}-${secondOrderGroup.name}`
+    
+    // Update mode choice
+    setSecondOrderModeChoices(prev => new Map(prev).set(key, mode))
+    
+    // If switching from aggregate to individual, we need to handle prefilling
+    if (mode === 'individual') {
+      // Check if there are existing aggregate responses
+      const existingAggregateResponses = hierarchicalResponses.filter(
+        r => r.category === selectedCategory && 
+             r.secondOrder === secondOrderGroup.name && 
+             r.isAggregate
+      )
+      
+      // If there were aggregate responses, convert them to individual responses with isAggregate: false
+      if (existingAggregateResponses.length > 0) {
+        const aggregateTemplate = existingAggregateResponses[0]
+        const convertedResponses = secondOrderGroup.firstOrderOffenses.map(offense => ({
+          category: selectedCategory,
+          secondOrder: secondOrderGroup.name,
+          firstOrder: offense.name,
+          isAggregate: false,
+          decision: aggregateTemplate.decision,
+          lookBackYears: aggregateTemplate.lookBackYears,
+          notes: aggregateTemplate.notes,
+        }))
+        
+        // Remove old aggregate responses and add converted individual responses
+        const filteredResponses = hierarchicalResponses.filter(
+          r => !(r.category === selectedCategory && r.secondOrder === secondOrderGroup.name)
+        )
+        setHierarchicalResponses([...filteredResponses, ...convertedResponses])
+      }
+    }
+    
+    setShowSecondOrderMode(false)
+    setIsTransitioning(true)
+    
+    setTimeout(() => {
+      if (mode === 'aggregate') {
+        // Will render AggregateDecisionPage
+      } else {
+        // Will render IndividualDecisionPage
+        setCurrentFirstOrderIndex(0)
+      }
+      setIsTransitioning(false)
+    }, 300)
+  }
+
+  const handleAggregateDecision = async (decisionData: AggregateDecisionData) => {
+    if (!selectedCategory || !user) return
+    
+    const category = getCategoryByName(selectedCategory)
+    if (!category) return
+    
+    const secondOrderGroup = category.secondOrderGroups[currentSecondOrderIndex]
+    
+    // Save aggregate decision for all first-order offenses in this group
+    const newResponses: HierarchicalResponse[] = secondOrderGroup.firstOrderOffenses.map(offense => ({
+      category: selectedCategory,
+      secondOrder: secondOrderGroup.name,
+      firstOrder: offense.name,
+      isAggregate: true,
+      decision: decisionData.decision,
+      lookBackYears: decisionData.lookBackYears,
+      notes: decisionData.notes,
+    }))
+    
+    // Remove any existing responses for this second-order group
+    const filteredResponses = hierarchicalResponses.filter(
+      r => !(r.category === selectedCategory && r.secondOrder === secondOrderGroup.name)
+    )
+    
+    setHierarchicalResponses([...filteredResponses, ...newResponses])
+    
+    // Save to database
+    try {
+      await saveHierarchicalResponses([...filteredResponses, ...newResponses])
+    } catch (err) {
+      console.error('Error saving aggregate decision:', err)
+      alert('Failed to save decision. Please check the database migration and try again. See MIGRATION_INSTRUCTIONS.md')
+      return
+    }
+    
+    // Move to next second-order group or back to category selection
+    moveToNextSecondOrderGroup()
+  }
+
+  const handleIndividualDecision = async (decisionData: IndividualDecisionData) => {
+    if (!selectedCategory || !user) return
+    
+    const category = getCategoryByName(selectedCategory)
+    if (!category) return
+    
+    const secondOrderGroup = category.secondOrderGroups[currentSecondOrderIndex]
+    
+    const newResponse: HierarchicalResponse = {
+      category: selectedCategory,
+      secondOrder: secondOrderGroup.name,
+      firstOrder: decisionData.offense,
+      isAggregate: false,
+      decision: decisionData.decision,
+      lookBackYears: decisionData.lookBackYears,
+      notes: decisionData.notes,
+    }
+    
+    // Update or add response
+    const updatedResponses = [...hierarchicalResponses]
+    const existingIndex = updatedResponses.findIndex(
+      r => r.category === selectedCategory && 
+           r.secondOrder === secondOrderGroup.name && 
+           r.firstOrder === decisionData.offense
+    )
+    
+    if (existingIndex >= 0) {
+      updatedResponses[existingIndex] = newResponse
+    } else {
+      updatedResponses.push(newResponse)
+    }
+    
+    setHierarchicalResponses(updatedResponses)
+    
+    // Save to database
+    try {
+      await saveHierarchicalResponses(updatedResponses)
+    } catch (err) {
+      console.error('Error saving individual decision:', err)
+      alert('Failed to save decision. Please check the database migration and try again. See MIGRATION_INSTRUCTIONS.md')
+      return
+    }
+    
+    // Move to next offense or next second-order group
+    setIsTransitioning(true)
+    setTimeout(() => {
+      if (currentFirstOrderIndex < secondOrderGroup.firstOrderOffenses.length - 1) {
+        setCurrentFirstOrderIndex(prev => prev + 1)
+      } else {
+        // Finished all offenses in this group
+        moveToNextSecondOrderGroup()
+      }
+      setIsTransitioning(false)
+    }, 300)
+  }
+
+  const moveToNextSecondOrderGroup = () => {
+    if (!selectedCategory) return
+    
+    const category = getCategoryByName(selectedCategory)
+    if (!category) return
+    
+    setIsTransitioning(true)
+    setTimeout(() => {
+      if (currentSecondOrderIndex < category.secondOrderGroups.length - 1) {
+        // Move to next second-order group
+        setCurrentSecondOrderIndex(prev => prev + 1)
+        setCurrentFirstOrderIndex(0)
+        setShowSecondOrderMode(true)
+      } else {
+        // Finished all second-order groups in this category
+        setSelectedCategory(null)
+        setCurrentSecondOrderIndex(0)
+        setCurrentFirstOrderIndex(0)
+        setShowCategorySelection(true)
+      }
+      setIsTransitioning(false)
+    }, 300)
+  }
+
+  const saveHierarchicalResponses = async (responses: HierarchicalResponse[]) => {
+    if (!user) return
+    
+    try {
+      const { data: existingBatch, error: fetchError } = await supabase
+        .from('decisions_batch')
+        .select('batch_id')
+        .eq('username', user.username)
+        .single()
+
+      const hierarchicalData = responses.map(r => ({
+        category: r.category,
+        second_order: r.secondOrder,
+        first_order: r.firstOrder,
+        is_aggregate: r.isAggregate,
+        decision_level: r.decision,
+        look_back_period: r.lookBackYears,
+        notes: r.notes || null,
+      }))
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Fetch error:', fetchError)
+        throw fetchError
+      }
+
+      if (existingBatch) {
+        const { error: updateError } = await supabase
+          .from('decisions_batch')
+          .update({
+            hierarchical_responses: hierarchicalData,
+            submitted_at: new Date().toISOString()
+          })
+          .eq('batch_id', existingBatch.batch_id)
+        
+        if (updateError) {
+          console.error('Update error:', updateError)
+          throw updateError
+        }
+        console.log('Successfully updated hierarchical responses')
+      } else {
+        const newBatchId = crypto.randomUUID()
+        const { error: insertError } = await supabase
+          .from('decisions_batch')
+          .insert({
+            batch_id: newBatchId,
+            username: user.username,
+            submitted_by_name: user.username,
+            recipient_emails: [],
+            responses: [],
+            hierarchical_responses: hierarchicalData,
+            submitted_at: new Date().toISOString()
+          })
+        
+        if (insertError) {
+          console.error('Insert error:', insertError)
+          throw insertError
+        }
+        console.log('Successfully inserted new batch with hierarchical responses')
+      }
+    } catch (err) {
+      console.error('Error saving hierarchical responses:', err)
+      throw err
+    }
+  }
+
+  const handleBackFromHierarchical = () => {
+    setIsTransitioning(true)
+    setTimeout(() => {
+      // Determine what to show based on current state
+      if (showSecondOrderMode) {
+        // Go back to category selection
+        setShowSecondOrderMode(false)
+        setShowCategorySelection(true)
+      } else if (currentFirstOrderIndex > 0) {
+        // Go back to previous offense
+        setCurrentFirstOrderIndex(prev => prev - 1)
+      } else {
+        // Go back to mode selection
+        setShowSecondOrderMode(true)
+      }
+      setIsTransitioning(false)
+    }, 300)
+  }
+  
+  const handleBackToCategoryFromMode = () => {
+    setShowModeSelection(false)
+    setWorkflowMode(null)
+    setShowCategorySelection(false)
+    setSelectedCategory(null)
+    setCurrentSecondOrderIndex(0)
+    setCurrentFirstOrderIndex(0)
   }
 
   if (!user) {
@@ -626,6 +991,61 @@ const MainApp: React.FC = () => {
     )
   }
 
+  // Mode selection screen
+  if (showModeSelection) {
+    return (
+      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
+        isPageTransitioning 
+          ? 'opacity-0 -translate-x-8' 
+          : 'opacity-100 translate-x-0'
+      }`}>
+        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} showButtons={false} />
+        <div className="flex items-center justify-center p-6 flex-1 mb-8">
+          <div className="bg-white w-full max-w-2xl p-8">
+            <h1 className="text-3xl font-bold mb-6 text-gray-900 text-center">Select Workflow Mode</h1>
+            <p className="text-gray-600 mb-10 text-center">Choose how you would like to make decisions</p>
+            
+            <div className="space-y-4 mb-10">
+              <button
+                onClick={() => handleModeSelection('original')}
+                className="w-full p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all duration-200 text-left hover:shadow-md"
+                style={{ backgroundColor: 'white' }}
+              >
+                <div className="text-xl font-semibold mb-2" style={{ color: '#0F206C' }}>
+                  Original Workflow
+                </div>
+                <div className="text-sm text-gray-600">
+                  Make decisions for 9 specific offenses in a linear flow
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleModeSelection('hierarchical')}
+                className="w-full p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all duration-200 text-left hover:shadow-md"
+                style={{ backgroundColor: 'white' }}
+              >
+                <div className="text-xl font-semibold mb-2" style={{ color: '#0F206C' }}>
+                  Hierarchical Workflow
+                </div>
+                <div className="text-sm text-gray-600">
+                  Organize decisions by category (Drug, Driving, Public Order, Property, Violence) with aggregate or individual options
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+          isOpen={showMenuScreen}
+        />
+      </div>
+    )
+  }
+
   if (showInstructions) {
     return (
       <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
@@ -707,6 +1127,113 @@ const MainApp: React.FC = () => {
         />
       </div>
     )
+  }
+
+  // Hierarchical workflow rendering
+  if (workflowMode === 'hierarchical') {
+    // Category selection
+    if (showCategorySelection) {
+      return (
+        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          <CategorySelectionPage
+            onSelectCategory={handleCategorySelection}
+            onBack={handleBackToCategoryFromMode}
+          />
+        </div>
+      )
+    }
+
+    if (selectedCategory) {
+      const category = getCategoryByName(selectedCategory)
+      if (!category) return null
+
+      const secondOrderGroup = category.secondOrderGroups[currentSecondOrderIndex]
+      const key = `${selectedCategory}-${secondOrderGroup.name}`
+      const mode = secondOrderModeChoices.get(key)
+
+      // Second-order mode selection
+      if (showSecondOrderMode) {
+        return (
+          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <SecondOrderModePage
+              category={selectedCategory}
+              secondOrderGroup={secondOrderGroup}
+              groupIndex={currentSecondOrderIndex}
+              totalGroups={category.secondOrderGroups.length}
+              existingChoice={mode}
+              onNext={handleSecondOrderModeSelection}
+              onBack={() => {
+                setShowSecondOrderMode(false)
+                setSelectedCategory(null)
+                setShowCategorySelection(true)
+              }}
+            />
+          </div>
+        )
+      }
+
+      // Aggregate decision
+      if (mode === 'aggregate') {
+        // Find existing aggregate decision if any
+        const existingDecision = hierarchicalResponses.find(
+          r => r.category === selectedCategory && 
+               r.secondOrder === secondOrderGroup.name && 
+               r.isAggregate
+        )
+
+        return (
+          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <AggregateDecisionPage
+              category={selectedCategory}
+              secondOrderName={secondOrderGroup.name}
+              groupIndex={currentSecondOrderIndex}
+              totalGroups={category.secondOrderGroups.length}
+              offenseCount={secondOrderGroup.firstOrderOffenses.length}
+              existingDecision={existingDecision ? {
+                decision: existingDecision.decision,
+                lookBackYears: existingDecision.lookBackYears,
+                notes: existingDecision.notes,
+              } : undefined}
+              onBack={() => setShowSecondOrderMode(true)}
+              onNext={handleAggregateDecision}
+            />
+          </div>
+        )
+      }
+
+      // Individual decisions
+      if (mode === 'individual') {
+        const offense = secondOrderGroup.firstOrderOffenses[currentFirstOrderIndex]
+        const existingDecision = hierarchicalResponses.find(
+          r => r.category === selectedCategory && 
+               r.secondOrder === secondOrderGroup.name && 
+               r.firstOrder === offense.name
+        )
+
+        return (
+          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <IndividualDecisionPage
+              key={`${selectedCategory}-${secondOrderGroup.name}-${currentFirstOrderIndex}`}
+              category={selectedCategory}
+              secondOrderName={secondOrderGroup.name}
+              offense={offense.name}
+              groupIndex={currentSecondOrderIndex}
+              totalGroups={category.secondOrderGroups.length}
+              offenseIndex={currentFirstOrderIndex}
+              totalOffenses={secondOrderGroup.firstOrderOffenses.length}
+              existingDecision={existingDecision ? {
+                offense: existingDecision.firstOrder,
+                decision: existingDecision.decision,
+                lookBackYears: existingDecision.lookBackYears,
+                notes: existingDecision.notes,
+              } : undefined}
+              onBack={handleBackFromHierarchical}
+              onNext={handleIndividualDecision}
+            />
+          </div>
+        )
+      }
+    }
   }
 
   // If we've collected FIRST_N_OFFENSES responses, show final submit
