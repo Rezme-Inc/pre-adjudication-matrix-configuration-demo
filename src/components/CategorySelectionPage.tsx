@@ -53,7 +53,7 @@ export function CategorySelectionPage({ onSelectCategory, onBack }: CategorySele
               variant="outline"
               className="px-6"
             >
-              Back to Mode Selection
+              Back
             </Button>
           </div>
         </div>

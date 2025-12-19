@@ -703,8 +703,11 @@ const MainApp: React.FC = () => {
         // Go back to previous offense
         setCurrentFirstOrderIndex(prev => prev - 1)
       } else {
-        // Go back to second order mode selection
-        setShowSecondOrderMode(true)
+        // Go back to category selection (skip mode selection)
+        setShowSecondOrderMode(false)
+        setSelectedCategory(null)
+        setCurrentSecondOrderIndex(0)
+        setShowCategorySelection(true)
       }
       setIsTransitioning(false)
     }, 300)
@@ -961,7 +964,12 @@ const MainApp: React.FC = () => {
               lookBackYears: existingDecision.lookBackYears,
               notes: existingDecision.notes,
             } : undefined}
-            onBack={() => setShowSecondOrderMode(true)}
+            onBack={() => {
+              setShowSecondOrderMode(false)
+              setSelectedCategory(null)
+              setCurrentSecondOrderIndex(0)
+              setShowCategorySelection(true)
+            }}
             onNext={handleAggregateDecision}
           />
         </div>
