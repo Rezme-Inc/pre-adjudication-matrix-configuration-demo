@@ -129,16 +129,6 @@ const MenuScreen: React.FC<{
                 {user ? user.username : 'Guest'}
               </p>
             </div>
-
-            {/* Instructions Section */}
-            <div>
-              <Button
-                onClick={onAboutClick}
-                className="w-full bg-[#0F206C] hover:bg-[#0a1855] text-white"
-              >
-                Instructions
-              </Button>
-            </div>
           </div>
 
           {/* Footer with Sign Out */}
@@ -157,10 +147,117 @@ const MenuScreen: React.FC<{
   )
 }
 
+const InstructionsOverlay: React.FC<{ 
+  isOpen: boolean
+  onClose: () => void
+}> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null
+
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10000, pointerEvents: isOpen ? 'auto' : 'none' }}>
+      {/* Backdrop */}
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 10001
+        }}
+        onClick={onClose}
+      />
+      
+      {/* Instructions Panel */}
+      <div 
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '90%',
+          maxWidth: '800px',
+          maxHeight: '90vh',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          zIndex: 10002,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-6 h-6 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+          {/* Always Eligible */}
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+            <h2 className="text-xl font-bold mb-4 text-gray-900">Always Eligible</h2>
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              The conviction is unrelated to positions at our company. Candidates with this conviction will not be flagged for further review.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-md px-4 py-2 inline-block">
+              <p className="text-gray-800 font-bold text-sm">Lookback Period: Not required</p>
+            </div>
+          </div>
+
+          {/* Job Dependent */}
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+            <h2 className="text-xl font-bold mb-4 text-gray-900">Job Dependent</h2>
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              This conviction may be relevant to some jobs at our company, but would not be relevant to others. The conviction will be subject to further review if the candidate is applying for a position with duties or risks relevant to the conviction.
+            </p>
+            <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-2 inline-block">
+              <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
+            </div>
+          </div>
+
+          {/* Always Review */}
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+            <h2 className="text-xl font-bold mb-4 text-gray-900">Always Review</h2>
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              The conviction may be relevant to all job categories and requires a full review and individualized assessment before a hiring decision is made.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-2 inline-block">
+              <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
+            </div>
+          </div>
+
+          {/* Setting Lookback Periods */}
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900">Setting Lookback Periods</h2>
+            <p className="text-gray-700 mb-3 leading-relaxed">
+              Choose 1-10+ years based on:
+            </p>
+            <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
+              <li>Known regulations or industry standards</li>
+              <li>Assessment of the conviction's potential risk or relevance to your company</li>
+              <li>Overlay of internal or external research and past experience</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
+  const [showInstructionsOverlay, setShowInstructionsOverlay] = useState(false)
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
   const [showMenuScreen, setShowMenuScreen] = useState(false)
   const [landingEmail, setLandingEmail] = useState('')
@@ -307,6 +404,12 @@ const MainApp: React.FC = () => {
   }
 
   const handleInfoClick = () => {
+    // If user is logged in and in the workflow, show as overlay
+    if (user) {
+      setShowInstructionsOverlay(true)
+      return
+    }
+
     // If already on instructions screen, do nothing
     if (showInstructions) return
 
@@ -904,10 +1007,25 @@ const MainApp: React.FC = () => {
   // Category selection
   if (showCategorySelection) {
     return (
-      <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-        <CategorySelectionPage
-          onSelectCategory={handleCategorySelection}
-          onBack={handleBackToInstructions}
+      <div className="bg-white min-h-screen flex flex-col">
+        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
+        <div className={`flex-1 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          <CategorySelectionPage
+            onSelectCategory={handleCategorySelection}
+            onBack={handleBackToInstructions}
+          />
+        </div>
+        <Footer />
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+          isOpen={showMenuScreen}
+        />
+        <InstructionsOverlay 
+          isOpen={showInstructionsOverlay}
+          onClose={() => setShowInstructionsOverlay(false)}
         />
       </div>
     )
@@ -924,19 +1042,34 @@ const MainApp: React.FC = () => {
     // Second-order mode selection
     if (showSecondOrderMode) {
       return (
-        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-          <SecondOrderModePage
-            category={selectedCategory}
-            secondOrderGroup={secondOrderGroup}
-            groupIndex={currentSecondOrderIndex}
-            totalGroups={category.secondOrderGroups.length}
-            existingChoice={mode}
-            onNext={handleSecondOrderModeSelection}
-            onBack={() => {
-              setShowSecondOrderMode(false)
-              setSelectedCategory(null)
-              setShowCategorySelection(true)
-            }}
+        <div className="bg-white min-h-screen flex flex-col">
+          <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
+          <div className={`flex-1 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <SecondOrderModePage
+              category={selectedCategory}
+              secondOrderGroup={secondOrderGroup}
+              groupIndex={currentSecondOrderIndex}
+              totalGroups={category.secondOrderGroups.length}
+              existingChoice={mode}
+              onNext={handleSecondOrderModeSelection}
+              onBack={() => {
+                setShowSecondOrderMode(false)
+                setSelectedCategory(null)
+                setShowCategorySelection(true)
+              }}
+            />
+          </div>
+          <Footer />
+          <MenuScreen 
+            user={user}
+            onBack={handleBackFromMenu}
+            onSignOut={handleSignOut}
+            onAboutClick={handleAboutClick}
+            isOpen={showMenuScreen}
+          />
+          <InstructionsOverlay 
+            isOpen={showInstructionsOverlay} 
+            onClose={() => setShowInstructionsOverlay(false)} 
           />
         </div>
       )
@@ -952,25 +1085,40 @@ const MainApp: React.FC = () => {
       )
 
       return (
-        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-          <AggregateDecisionPage
-            category={selectedCategory}
-            secondOrderName={secondOrderGroup.name}
-            groupIndex={currentSecondOrderIndex}
-            totalGroups={category.secondOrderGroups.length}
-            offenseCount={secondOrderGroup.firstOrderOffenses.length}
-            existingDecision={existingDecision ? {
-              decision: existingDecision.decision,
-              lookBackYears: existingDecision.lookBackYears,
-              notes: existingDecision.notes,
-            } : undefined}
-            onBack={() => {
-              setShowSecondOrderMode(false)
-              setSelectedCategory(null)
-              setCurrentSecondOrderIndex(0)
-              setShowCategorySelection(true)
-            }}
-            onNext={handleAggregateDecision}
+        <div className="bg-white min-h-screen flex flex-col">
+          <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
+          <div className={`flex-1 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <AggregateDecisionPage
+              category={selectedCategory}
+              secondOrderName={secondOrderGroup.name}
+              groupIndex={currentSecondOrderIndex}
+              totalGroups={category.secondOrderGroups.length}
+              offenseCount={secondOrderGroup.firstOrderOffenses.length}
+              existingDecision={existingDecision ? {
+                decision: existingDecision.decision,
+                lookBackYears: existingDecision.lookBackYears,
+                notes: existingDecision.notes,
+              } : undefined}
+              onBack={() => {
+                setShowSecondOrderMode(false)
+                setSelectedCategory(null)
+                setCurrentSecondOrderIndex(0)
+                setShowCategorySelection(true)
+              }}
+              onNext={handleAggregateDecision}
+            />
+          </div>
+          <Footer />
+          <MenuScreen 
+            user={user}
+            onBack={handleBackFromMenu}
+            onSignOut={handleSignOut}
+            onAboutClick={handleAboutClick}
+            isOpen={showMenuScreen}
+          />
+          <InstructionsOverlay 
+            isOpen={showInstructionsOverlay} 
+            onClose={() => setShowInstructionsOverlay(false)} 
           />
         </div>
       )
@@ -986,24 +1134,39 @@ const MainApp: React.FC = () => {
       )
 
       return (
-        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-          <IndividualDecisionPage
-            key={`${selectedCategory}-${secondOrderGroup.name}-${currentFirstOrderIndex}`}
-            category={selectedCategory}
-            secondOrderName={secondOrderGroup.name}
-            offense={offense.name}
-            groupIndex={currentSecondOrderIndex}
-            totalGroups={category.secondOrderGroups.length}
-            offenseIndex={currentFirstOrderIndex}
-            totalOffenses={secondOrderGroup.firstOrderOffenses.length}
-            existingDecision={existingDecision ? {
-              offense: existingDecision.firstOrder,
-              decision: existingDecision.decision,
-              lookBackYears: existingDecision.lookBackYears,
-              notes: existingDecision.notes,
-            } : undefined}
-            onBack={handleBackFromHierarchical}
-            onNext={handleIndividualDecision}
+        <div className="bg-white min-h-screen flex flex-col">
+          <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
+          <div className={`flex-1 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+            <IndividualDecisionPage
+              key={`${selectedCategory}-${secondOrderGroup.name}-${currentFirstOrderIndex}`}
+              category={selectedCategory}
+              secondOrderName={secondOrderGroup.name}
+              offense={offense.name}
+              groupIndex={currentSecondOrderIndex}
+              totalGroups={category.secondOrderGroups.length}
+              offenseIndex={currentFirstOrderIndex}
+              totalOffenses={secondOrderGroup.firstOrderOffenses.length}
+              existingDecision={existingDecision ? {
+                offense: existingDecision.firstOrder,
+                decision: existingDecision.decision,
+                lookBackYears: existingDecision.lookBackYears,
+                notes: existingDecision.notes,
+              } : undefined}
+              onBack={handleBackFromHierarchical}
+              onNext={handleIndividualDecision}
+            />
+          </div>
+          <Footer />
+          <MenuScreen 
+            user={user}
+            onBack={handleBackFromMenu}
+            onSignOut={handleSignOut}
+            onAboutClick={handleAboutClick}
+            isOpen={showMenuScreen}
+          />
+          <InstructionsOverlay 
+            isOpen={showInstructionsOverlay}
+            onClose={() => setShowInstructionsOverlay(false)}
           />
         </div>
       )

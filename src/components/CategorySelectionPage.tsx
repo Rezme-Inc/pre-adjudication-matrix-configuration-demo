@@ -1,6 +1,3 @@
-import { Button } from './ui/button';
-import { Info } from 'lucide-react';
-
 interface CategorySelectionPageProps {
   onSelectCategory: (category: string) => void;
   onBack: () => void;
@@ -18,17 +15,7 @@ export function CategorySelectionPage({ onSelectCategory, onBack }: CategorySele
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
-        <div className="bg-white rounded-lg shadow-lg p-8 relative">
-          {/* Info icon in top-right corner */}
-          <button
-            onClick={onBack}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
-            title="View instructions and decision options"
-            aria-label="View instructions"
-          >
-            <Info size={24} style={{ color: '#0F206C' }} />
-          </button>
-
+        <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-center mb-2" style={{ color: '#0F206C' }}>
               Select Offense Category
