@@ -2,8 +2,6 @@ import React, { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Menu, Info, X } from 'lucide-react'
 import './App.css'
-import { OffensePage } from './components/OffensePage'
-import { FinalSubmit } from './components/FinalSubmit'
 import AdminDashboard from './pages/AdminDashboard'
 import { Button } from './components/ui/button'
 import { supabase } from './supabaseClient'
@@ -15,45 +13,11 @@ import { CategorySelectionPage } from './components/CategorySelectionPage'
 import { SecondOrderModePage } from './components/SecondOrderModePage'
 import { AggregateDecisionPage, AggregateDecisionData } from './components/AggregateDecisionPage'
 import { IndividualDecisionPage, IndividualDecisionData } from './components/IndividualDecisionPage'
-import { OFFENSE_HIERARCHY, HierarchicalResponse, getCategoryByName, getTotalSecondOrderGroups, getTotalFirstOrderOffenses } from './data/offenseHierarchy'
+import { OFFENSE_HIERARCHY, HierarchicalResponse, getCategoryByName } from './data/offenseHierarchy'
 
 type User = {
   username: string
 }
-
-type OffenseResponse = {
-  offense: string
-  decision: 'Always Eligible' | 'Job Dependent' | 'Always Review'
-  lookBackYears: number
-  notes?: string
-}
-
-const OFFENSES = [
-  // 'Possession of Marijuana (Drug)',
-  // 'Possession of Opioids (Drug)',
-  // 'Destruction of Property (Property)',
-  // 'Driving While Intoxicated/DUI (Driving)',
-  // 'Distribution of Amphetamines (Drug)',
-  // 'Taxation Offense (Property)',
-  // 'Theft/Larceny (Property)',
-  // 'Robbery (Violent)',
-  // 'Resisting Arrest (Public Order)',
-  // 'Aggravated Assault (Violent)',
-  // 'Motor Vehicle Theft (Property)',
-  // 'Vehicular Manslaughter (Driving/Violent)'
-  "Driving While Intoxicated (DWI)",
-  "Assault",
-  "Disorderly Conduct",
-  "Forgery/Fraud",
-  "Distribution of a Controlled Substance",
-  "Burglary",
-  "Possession of Marijuana",
-  "Parole Violation",
-  "Voluntary Manslaughter",
-]
-
-// We'll run the user through the FIRST_N_OFFENSES (user asked for 12 offenses)
-const FIRST_N_OFFENSES = 9
 
 // Constant for "No time limit" lookback period
 export const NO_TIME_LIMIT = 25
@@ -195,14 +159,10 @@ const MenuScreen: React.FC<{
 
 const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null)
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [responses, setResponses] = useState<OffenseResponse[]>([])
-  const [showAdmin, setShowAdmin] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
   const [isPageTransitioning, setIsPageTransitioning] = useState(false)
   const [showMenuScreen, setShowMenuScreen] = useState(false)
-  const [showInfo, setShowInfo] = useState(false)
   const [landingEmail, setLandingEmail] = useState('')
   const [emailStatus, setEmailStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
   const [showUsernameConflict, setShowUsernameConflict] = useState(false)
@@ -210,8 +170,6 @@ const MainApp: React.FC = () => {
   const [pendingUsername, setPendingUsername] = useState('')
   
   // Hierarchical workflow state
-  const [workflowMode, setWorkflowMode] = useState<'original' | 'hierarchical' | null>(null)
-  const [showModeSelection, setShowModeSelection] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [currentSecondOrderIndex, setCurrentSecondOrderIndex] = useState(0)
   const [currentFirstOrderIndex, setCurrentFirstOrderIndex] = useState(0)
@@ -219,24 +177,6 @@ const MainApp: React.FC = () => {
   const [hierarchicalResponses, setHierarchicalResponses] = useState<HierarchicalResponse[]>([])
   const [showSecondOrderMode, setShowSecondOrderMode] = useState(false)
   const [showCategorySelection, setShowCategorySelection] = useState(false)
-
-  // Mark as completed when reaching final page
-  React.useEffect(() => {
-    const markCompleted = async () => {
-      if (!user || responses.length < FIRST_N_OFFENSES) return
-
-      try {
-        await supabase
-          .from('decisions_batch')
-          .update({ completed: true })
-          .eq('username', user.username)
-      } catch (err) {
-        console.error('Error marking as completed:', err)
-      }
-    }
-
-    markCompleted()
-  }, [responses.length, user])
 
   const handleLandingEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -272,22 +212,6 @@ const MainApp: React.FC = () => {
     }
   }
 
-  // Helper function to find the first unanswered question
-  const findNextQuestionIndex = (savedResponses: any[]): number => {
-    const answeredOffenses = new Set(
-      savedResponses.map((r: any) => r.offense_name)
-    )
-
-    // Find first offense not answered
-    for (let i = 0; i < OFFENSES.length && i < FIRST_N_OFFENSES; i++) {
-      if (!answeredOffenses.has(OFFENSES[i])) {
-        return i
-      }
-    }
-
-    return FIRST_N_OFFENSES // All answered
-  }
-
   const start = async (username: string) => {
     // Check if username exists in database
     try {
@@ -310,17 +234,15 @@ const MainApp: React.FC = () => {
         return
       }
 
-      // Username doesn't exist - proceed normally
+      // Username doesn't exist - proceed to hierarchical workflow
       setIsPageTransitioning(true)
       setTimeout(() => {
         setUser({ username })
-        setCurrentIndex(0)
-        setResponses([])
         setIsTransitioning(false)
         setIsPageTransitioning(false)
-        // Show mode selection instead of instructions directly
+        // Show instructions first
         setTimeout(() => {
-          setShowModeSelection(true)
+          setShowInstructions(true)
         }, 10)
       }, 400)
     } catch (err) {
@@ -329,12 +251,10 @@ const MainApp: React.FC = () => {
       setIsPageTransitioning(true)
       setTimeout(() => {
         setUser({ username })
-        setCurrentIndex(0)
-        setResponses([])
         setIsTransitioning(false)
         setIsPageTransitioning(false)
         setTimeout(() => {
-          setShowModeSelection(true)
+          setShowInstructions(true)
         }, 10)
       }, 400)
     }
@@ -345,60 +265,21 @@ const MainApp: React.FC = () => {
     setTimeout(() => {
       setShowInstructions(false)
       setTimeout(() => {
-        if (workflowMode === 'hierarchical') {
-          setShowCategorySelection(true)
-        }
+        setShowCategorySelection(true)
         setIsPageTransitioning(false)
       }, 50)
     }, 400)
   }
 
-  const handleNext = (resp: OffenseResponse) => {
-    // Update or add response
-    setResponses((r) => {
-      const existingIndex = r.findIndex(response => response.offense === resp.offense)
-      if (existingIndex >= 0) {
-        // Update existing response
-        const updated = [...r]
-        updated[existingIndex] = resp
-        return updated
-      } else {
-        // Add new response
-        return [...r, resp]
-      }
-    })
-    // Start fade out animation
-    setIsTransitioning(true)
-    // After fade out, move to next offense and fade in
-    setTimeout(() => {
-      const next = currentIndex + 1
-      setCurrentIndex(next)
-      // Small delay before fade in
-      setTimeout(() => {
-        setIsTransitioning(false)
-      }, 50)
-    }, 300) // Match the fade-out duration
-  }
-
-  const handleBack = () => {
-    if (currentIndex === 0) return
-    // Start fade out animation
-    setIsTransitioning(true)
-    // After fade out, move to previous offense and fade in
-    setTimeout(() => {
-      // Don't remove responses - keep them so user can see previous answers
-      setCurrentIndex((i) => i - 1)
-      // Small delay before fade in
-      setTimeout(() => {
-        setIsTransitioning(false)
-      }, 50)
-    }, 300) // Match the fade-out duration
-  }
-
   const handleSignOut = () => {
     setUser(null)
-    setResponses([])
-    setCurrentIndex(0)
+    setHierarchicalResponses([])
+    setSelectedCategory(null)
+    setCurrentSecondOrderIndex(0)
+    setCurrentFirstOrderIndex(0)
+    setSecondOrderModeChoices(new Map())
+    setShowCategorySelection(false)
+    setShowSecondOrderMode(false)
     setIsTransitioning(false)
     setShowMenuScreen(false)
   }
@@ -451,12 +332,10 @@ const MainApp: React.FC = () => {
     setIsPageTransitioning(true)
 
     setTimeout(() => {
-      // Check if this is hierarchical or original workflow
+      // Load hierarchical responses
       const hierarchicalData = existingBatchData.hierarchical_responses || []
-      const originalData = existingBatchData.responses || []
 
       if (hierarchicalData.length > 0) {
-        // Load hierarchical responses
         const convertedHierarchicalResponses: HierarchicalResponse[] = hierarchicalData.map((r: any) => ({
           category: r.category,
           secondOrder: r.second_order,
@@ -468,23 +347,12 @@ const MainApp: React.FC = () => {
         }))
 
         setUser({ username: pendingUsername })
-        setWorkflowMode('hierarchical')
         setHierarchicalResponses(convertedHierarchicalResponses)
-        // Show final page or summary for hierarchical
         setShowCategorySelection(true)
       } else {
-        // Load original responses and go to final page
-        const convertedResponses: OffenseResponse[] = originalData.map((r: any) => ({
-          offense: r.offense_name,
-          decision: r.decision_level,
-          lookBackYears: r.look_back_period,
-          notes: r.notes
-        }))
-
+        // No hierarchical data, start fresh
         setUser({ username: pendingUsername })
-        setWorkflowMode('original')
-        setResponses(convertedResponses)
-        setCurrentIndex(FIRST_N_OFFENSES) // Go to final page
+        setShowInstructions(true)
       }
       
       setIsPageTransitioning(false)
@@ -508,7 +376,6 @@ const MainApp: React.FC = () => {
 
     setTimeout(() => {
       const hierarchicalData = existingBatchData.hierarchical_responses || []
-      const originalData = existingBatchData.responses || []
 
       if (hierarchicalData.length > 0) {
         // Restore hierarchical workflow state
@@ -523,38 +390,14 @@ const MainApp: React.FC = () => {
         }))
 
         setUser({ username: pendingUsername })
-        setWorkflowMode('hierarchical')
         setHierarchicalResponses(convertedHierarchicalResponses)
-        setShowModeSelection(true) // Let user continue from mode selection
+        setShowInstructions(true) // Show instructions first
         setIsPageTransitioning(false)
       } else {
-        // Original workflow
-        const convertedResponses: OffenseResponse[] = originalData.map((r: any) => ({
-          offense: r.offense_name,
-          decision: r.decision_level,
-          lookBackYears: r.look_back_period,
-          notes: r.notes
-        }))
-
-        const nextIndex = findNextQuestionIndex(originalData)
-
+        // No data yet, start from beginning
         setUser({ username: pendingUsername })
-        setWorkflowMode('original')
-        setResponses(convertedResponses)
-        setCurrentIndex(nextIndex)
-        setIsTransitioning(false)
+        setShowInstructions(true)
         setIsPageTransitioning(false)
-
-        // If all questions answered, go directly to final page (don't show instructions)
-        if (nextIndex >= FIRST_N_OFFENSES) {
-          // responses.length >= FIRST_N_OFFENSES will trigger final page render
-          // Do nothing - the component will render the final page
-        } else {
-          // Show instructions first, then questions
-          setTimeout(() => {
-            setShowInstructions(true)
-          }, 10)
-        }
       }
     }, 400)
   }
@@ -575,14 +418,11 @@ const MainApp: React.FC = () => {
 
       setTimeout(() => {
         setUser({ username: pendingUsername })
-        setCurrentIndex(0)
-        setResponses([])
         setHierarchicalResponses([])
-        setWorkflowMode(null)
         setIsTransitioning(false)
         setIsPageTransitioning(false)
         setTimeout(() => {
-          setShowModeSelection(true)
+          setShowInstructions(true)
         }, 10)
       }, 400)
     } catch (err) {
@@ -600,22 +440,6 @@ const MainApp: React.FC = () => {
   }
 
   // Hierarchical workflow handlers
-  const handleModeSelection = (mode: 'original' | 'hierarchical') => {
-    setWorkflowMode(mode)
-    setShowModeSelection(false)
-    setIsPageTransitioning(true)
-    
-    setTimeout(() => {
-      if (mode === 'hierarchical') {
-        setShowCategorySelection(true)
-      }
-      setIsPageTransitioning(false)
-      setTimeout(() => {
-        setShowInstructions(true)
-      }, 10)
-    }, 400)
-  }
-
   const handleCategorySelection = (category: string) => {
     setSelectedCategory(category)
     setCurrentSecondOrderIndex(0)
@@ -879,20 +703,19 @@ const MainApp: React.FC = () => {
         // Go back to previous offense
         setCurrentFirstOrderIndex(prev => prev - 1)
       } else {
-        // Go back to mode selection
+        // Go back to second order mode selection
         setShowSecondOrderMode(true)
       }
       setIsTransitioning(false)
     }, 300)
   }
   
-  const handleBackToCategoryFromMode = () => {
-    setShowModeSelection(false)
-    setWorkflowMode(null)
+  const handleBackToInstructions = () => {
     setShowCategorySelection(false)
     setSelectedCategory(null)
     setCurrentSecondOrderIndex(0)
     setCurrentFirstOrderIndex(0)
+    setShowInstructions(true)
   }
 
   if (!user) {
@@ -991,61 +814,6 @@ const MainApp: React.FC = () => {
     )
   }
 
-  // Mode selection screen
-  if (showModeSelection) {
-    return (
-      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
-        isPageTransitioning 
-          ? 'opacity-0 -translate-x-8' 
-          : 'opacity-100 translate-x-0'
-      }`}>
-        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} showButtons={false} />
-        <div className="flex items-center justify-center p-6 flex-1 mb-8">
-          <div className="bg-white w-full max-w-2xl p-8">
-            <h1 className="text-3xl font-bold mb-6 text-gray-900 text-center">Select Workflow Mode</h1>
-            <p className="text-gray-600 mb-10 text-center">Choose how you would like to make decisions</p>
-            
-            <div className="space-y-4 mb-10">
-              <button
-                onClick={() => handleModeSelection('original')}
-                className="w-full p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all duration-200 text-left hover:shadow-md"
-                style={{ backgroundColor: 'white' }}
-              >
-                <div className="text-xl font-semibold mb-2" style={{ color: '#0F206C' }}>
-                  Original Workflow
-                </div>
-                <div className="text-sm text-gray-600">
-                  Make decisions for 9 specific offenses in a linear flow
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleModeSelection('hierarchical')}
-                className="w-full p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all duration-200 text-left hover:shadow-md"
-                style={{ backgroundColor: 'white' }}
-              >
-                <div className="text-xl font-semibold mb-2" style={{ color: '#0F206C' }}>
-                  Hierarchical Workflow
-                </div>
-                <div className="text-sm text-gray-600">
-                  Organize decisions by category (Drug, Driving, Public Order, Property, Violence) with aggregate or individual options
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-        <Footer />
-        <MenuScreen 
-          user={user}
-          onBack={handleBackFromMenu}
-          onSignOut={handleSignOut}
-          onAboutClick={handleAboutClick}
-          isOpen={showMenuScreen}
-        />
-      </div>
-    )
-  }
-
   if (showInstructions) {
     return (
       <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
@@ -1130,195 +898,111 @@ const MainApp: React.FC = () => {
   }
 
   // Hierarchical workflow rendering
-  if (workflowMode === 'hierarchical') {
-    // Category selection
-    if (showCategorySelection) {
-      return (
-        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-          <CategorySelectionPage
-            onSelectCategory={handleCategorySelection}
-            onBack={handleBackToCategoryFromMode}
-          />
-        </div>
-      )
-    }
-
-    if (selectedCategory) {
-      const category = getCategoryByName(selectedCategory)
-      if (!category) return null
-
-      const secondOrderGroup = category.secondOrderGroups[currentSecondOrderIndex]
-      const key = `${selectedCategory}-${secondOrderGroup.name}`
-      const mode = secondOrderModeChoices.get(key)
-
-      // Second-order mode selection
-      if (showSecondOrderMode) {
-        return (
-          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-            <SecondOrderModePage
-              category={selectedCategory}
-              secondOrderGroup={secondOrderGroup}
-              groupIndex={currentSecondOrderIndex}
-              totalGroups={category.secondOrderGroups.length}
-              existingChoice={mode}
-              onNext={handleSecondOrderModeSelection}
-              onBack={() => {
-                setShowSecondOrderMode(false)
-                setSelectedCategory(null)
-                setShowCategorySelection(true)
-              }}
-            />
-          </div>
-        )
-      }
-
-      // Aggregate decision
-      if (mode === 'aggregate') {
-        // Find existing aggregate decision if any
-        const existingDecision = hierarchicalResponses.find(
-          r => r.category === selectedCategory && 
-               r.secondOrder === secondOrderGroup.name && 
-               r.isAggregate
-        )
-
-        return (
-          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-            <AggregateDecisionPage
-              category={selectedCategory}
-              secondOrderName={secondOrderGroup.name}
-              groupIndex={currentSecondOrderIndex}
-              totalGroups={category.secondOrderGroups.length}
-              offenseCount={secondOrderGroup.firstOrderOffenses.length}
-              existingDecision={existingDecision ? {
-                decision: existingDecision.decision,
-                lookBackYears: existingDecision.lookBackYears,
-                notes: existingDecision.notes,
-              } : undefined}
-              onBack={() => setShowSecondOrderMode(true)}
-              onNext={handleAggregateDecision}
-            />
-          </div>
-        )
-      }
-
-      // Individual decisions
-      if (mode === 'individual') {
-        const offense = secondOrderGroup.firstOrderOffenses[currentFirstOrderIndex]
-        const existingDecision = hierarchicalResponses.find(
-          r => r.category === selectedCategory && 
-               r.secondOrder === secondOrderGroup.name && 
-               r.firstOrder === offense.name
-        )
-
-        return (
-          <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-            <IndividualDecisionPage
-              key={`${selectedCategory}-${secondOrderGroup.name}-${currentFirstOrderIndex}`}
-              category={selectedCategory}
-              secondOrderName={secondOrderGroup.name}
-              offense={offense.name}
-              groupIndex={currentSecondOrderIndex}
-              totalGroups={category.secondOrderGroups.length}
-              offenseIndex={currentFirstOrderIndex}
-              totalOffenses={secondOrderGroup.firstOrderOffenses.length}
-              existingDecision={existingDecision ? {
-                offense: existingDecision.firstOrder,
-                decision: existingDecision.decision,
-                lookBackYears: existingDecision.lookBackYears,
-                notes: existingDecision.notes,
-              } : undefined}
-              onBack={handleBackFromHierarchical}
-              onNext={handleIndividualDecision}
-            />
-          </div>
-        )
-      }
-    }
-  }
-
-  // If we've collected FIRST_N_OFFENSES responses, show final submit
-  if (responses.length >= FIRST_N_OFFENSES) {
+  // Category selection
+  if (showCategorySelection) {
     return (
-      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
-        isPageTransitioning
-          ? 'opacity-0 -translate-x-8'
-          : 'opacity-100 translate-x-0'
-      }`}>
-        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
-        <div className="max-w-4xl mx-auto p-6 flex-1 mb-8">
-          {showAdmin ? (
-            <div className="bg-white p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                <Button variant="outline" onClick={() => setShowAdmin(false)}>Back</Button>
-              </div>
-              <AdminDashboard />
-            </div>
-          ) : (
-            <div className="bg-white p-6">
-              <h1 className="text-2xl font-bold mb-6 text-gray-900">Assessment Submitted</h1>
-              <FinalSubmit
-                user={user}
-                responses={responses}
-                onBackToHome={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}
-              />
-            </div>
-          )}
-        </div>
-        <Footer />
-        <MenuScreen 
-          user={user}
-          onBack={handleBackFromMenu}
-          onSignOut={handleSignOut}
-          onAboutClick={handleAboutClick}
-          isOpen={showMenuScreen}
+      <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+        <CategorySelectionPage
+          onSelectCategory={handleCategorySelection}
+          onBack={handleBackToInstructions}
         />
       </div>
     )
   }
 
-  const offense = OFFENSES[currentIndex]
-  // Find existing response for current offense (for when user goes back)
-  const existingResponse = responses.find(r => r.offense === offense)
+  if (selectedCategory) {
+    const category = getCategoryByName(selectedCategory)
+    if (!category) return null
 
-  return (
-    <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
-      isPageTransitioning
-        ? 'opacity-0 -translate-x-8'
-        : 'opacity-100 translate-x-0'
-    }`}>
-      <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
-      <div className="flex items-center justify-center p-6 flex-1 mb-8">
-        <div className={`bg-white w-full max-w-2xl p-8 transition-all duration-300 ease-in-out ${
-          isTransitioning
-            ? 'opacity-0 -translate-x-8'
-            : 'opacity-100 translate-x-0'
-        }`}>
-        <h1 className="text-2xl font-bold mb-6 text-gray-900">Conviction {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
-        <p className="text-gray-600 mb-10">Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
+    const secondOrderGroup = category.secondOrderGroups[currentSecondOrderIndex]
+    const key = `${selectedCategory}-${secondOrderGroup.name}`
+    const mode = secondOrderModeChoices.get(key)
 
-        <OffensePage
-          key={currentIndex} // Force remount when index changes
-          offense={offense}
-          index={currentIndex}
-          total={FIRST_N_OFFENSES}
-          username={user.username}
-          onBack={handleBack}
-          onNext={handleNext}
-          existingResponse={existingResponse}
-        />
+    // Second-order mode selection
+    if (showSecondOrderMode) {
+      return (
+        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          <SecondOrderModePage
+            category={selectedCategory}
+            secondOrderGroup={secondOrderGroup}
+            groupIndex={currentSecondOrderIndex}
+            totalGroups={category.secondOrderGroups.length}
+            existingChoice={mode}
+            onNext={handleSecondOrderModeSelection}
+            onBack={() => {
+              setShowSecondOrderMode(false)
+              setSelectedCategory(null)
+              setShowCategorySelection(true)
+            }}
+          />
         </div>
-      </div>
-        <Footer />
-        <MenuScreen 
-          user={user}
-          onBack={handleBackFromMenu}
-          onSignOut={handleSignOut}
-          onAboutClick={handleAboutClick}
-          isOpen={showMenuScreen}
-        />
-    </div>
-  )
+      )
+    }
+
+    // Aggregate decision
+    if (mode === 'aggregate') {
+      // Find existing aggregate decision if any
+      const existingDecision = hierarchicalResponses.find(
+        r => r.category === selectedCategory && 
+             r.secondOrder === secondOrderGroup.name && 
+             r.isAggregate
+      )
+
+      return (
+        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          <AggregateDecisionPage
+            category={selectedCategory}
+            secondOrderName={secondOrderGroup.name}
+            groupIndex={currentSecondOrderIndex}
+            totalGroups={category.secondOrderGroups.length}
+            offenseCount={secondOrderGroup.firstOrderOffenses.length}
+            existingDecision={existingDecision ? {
+              decision: existingDecision.decision,
+              lookBackYears: existingDecision.lookBackYears,
+              notes: existingDecision.notes,
+            } : undefined}
+            onBack={() => setShowSecondOrderMode(true)}
+            onNext={handleAggregateDecision}
+          />
+        </div>
+      )
+    }
+
+    // Individual decisions
+    if (mode === 'individual') {
+      const offense = secondOrderGroup.firstOrderOffenses[currentFirstOrderIndex]
+      const existingDecision = hierarchicalResponses.find(
+        r => r.category === selectedCategory && 
+             r.secondOrder === secondOrderGroup.name && 
+             r.firstOrder === offense.name
+      )
+
+      return (
+        <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          <IndividualDecisionPage
+            key={`${selectedCategory}-${secondOrderGroup.name}-${currentFirstOrderIndex}`}
+            category={selectedCategory}
+            secondOrderName={secondOrderGroup.name}
+            offense={offense.name}
+            groupIndex={currentSecondOrderIndex}
+            totalGroups={category.secondOrderGroups.length}
+            offenseIndex={currentFirstOrderIndex}
+            totalOffenses={secondOrderGroup.firstOrderOffenses.length}
+            existingDecision={existingDecision ? {
+              offense: existingDecision.firstOrder,
+              decision: existingDecision.decision,
+              lookBackYears: existingDecision.lookBackYears,
+              notes: existingDecision.notes,
+            } : undefined}
+            onBack={handleBackFromHierarchical}
+            onNext={handleIndividualDecision}
+          />
+        </div>
+      )
+    }
+  }
+
+  return null
 }
 
 const App: React.FC = () => {
