@@ -13,6 +13,7 @@ import { CategorySelectionPage } from './components/CategorySelectionPage'
 import { SecondOrderModePage } from './components/SecondOrderModePage'
 import { AggregateDecisionPage, AggregateDecisionData } from './components/AggregateDecisionPage'
 import { IndividualDecisionPage, IndividualDecisionData } from './components/IndividualDecisionPage'
+import { HierarchicalFinalSubmit } from './components/HierarchicalFinalSubmit'
 import { OFFENSE_HIERARCHY, HierarchicalResponse, getCategoryByName } from './data/offenseHierarchy'
 
 type User = {
@@ -274,6 +275,7 @@ const MainApp: React.FC = () => {
   const [hierarchicalResponses, setHierarchicalResponses] = useState<HierarchicalResponse[]>([])
   const [showSecondOrderMode, setShowSecondOrderMode] = useState(false)
   const [showCategorySelection, setShowCategorySelection] = useState(false)
+  const [showHierarchicalFinalSubmit, setShowHierarchicalFinalSubmit] = useState(false)
 
   const handleLandingEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -331,7 +333,27 @@ const MainApp: React.FC = () => {
         return
       }
 
-      // Username doesn't exist - proceed to hierarchical workflow
+      // Username doesn't exist - create new batch record
+      const newBatchId = crypto.randomUUID()
+      const { error: insertError } = await supabase
+        .from('decisions_batch')
+        .insert({
+          batch_id: newBatchId,
+          username: username,
+          submitted_by_name: username,
+          recipient_emails: [],
+          hierarchical_responses: [],
+          completed: false,
+          submitted_at: new Date().toISOString()
+        })
+
+      if (insertError) {
+        console.error('Error creating batch:', insertError)
+        alert(`Failed to create user record: ${insertError.message}\nPlease check the database schema.`)
+        return
+      }
+
+      // Proceed to hierarchical workflow
       setIsPageTransitioning(true)
       setTimeout(() => {
         setUser({ username })
@@ -705,6 +727,31 @@ const MainApp: React.FC = () => {
     }, 300)
   }
 
+  const areAllCategoriesComplete = () => {
+    // Check if all categories have been completed
+    return OFFENSE_HIERARCHY.every(category => {
+      return category.secondOrderGroups.every(secondOrderGroup => {
+        // Check if this second-order group has a response (either aggregate or individual for all offenses)
+        const hasAggregateResponse = hierarchicalResponses.some(
+          r => r.category === category.name && 
+               r.secondOrder === secondOrderGroup.name && 
+               r.isAggregate
+        )
+        
+        if (hasAggregateResponse) return true
+        
+        // If no aggregate, check if all individual offenses have responses
+        return secondOrderGroup.firstOrderOffenses.every(offense => 
+          hierarchicalResponses.some(
+            r => r.category === category.name && 
+                 r.secondOrder === secondOrderGroup.name && 
+                 r.firstOrder === offense.name
+          )
+        )
+      })
+    })
+  }
+
   const moveToNextSecondOrderGroup = () => {
     if (!selectedCategory) return
     
@@ -723,7 +770,13 @@ const MainApp: React.FC = () => {
         setSelectedCategory(null)
         setCurrentSecondOrderIndex(0)
         setCurrentFirstOrderIndex(0)
-        setShowCategorySelection(true)
+        
+        // Check if all categories are complete
+        if (areAllCategoriesComplete()) {
+          setShowHierarchicalFinalSubmit(true)
+        } else {
+          setShowCategorySelection(true)
+        }
       }
       setIsTransitioning(false)
     }, 300)
@@ -777,8 +830,8 @@ const MainApp: React.FC = () => {
             username: user.username,
             submitted_by_name: user.username,
             recipient_emails: [],
-            responses: [],
             hierarchical_responses: hierarchicalData,
+            completed: false,
             submitted_at: new Date().toISOString()
           })
         
@@ -1000,6 +1053,34 @@ const MainApp: React.FC = () => {
           isOpen={showMenuScreen}
         />
       </div>
+    )
+  }
+
+  // Hierarchical Final Submit Screen
+  if (showHierarchicalFinalSubmit && user) {
+    return (
+      <>
+        <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
+        <HierarchicalFinalSubmit
+          user={user}
+          responses={hierarchicalResponses}
+          onBackToCategories={() => {
+            setShowHierarchicalFinalSubmit(false)
+            setShowCategorySelection(true)
+          }}
+        />
+        <MenuScreen 
+          user={user}
+          onBack={handleBackFromMenu}
+          onSignOut={handleSignOut}
+          onAboutClick={handleAboutClick}
+          isOpen={showMenuScreen}
+        />
+        <InstructionsOverlay 
+          isOpen={showInstructionsOverlay}
+          onClose={() => setShowInstructionsOverlay(false)}
+        />
+      </>
     )
   }
 
