@@ -4,11 +4,11 @@ interface CategorySelectionPageProps {
 }
 
 const CATEGORIES = [
-  { name: 'Drug', description: 'Drug-related offenses' },
-  { name: 'Driving', description: 'Driving-related offenses' },
-  { name: 'Public Order', description: 'Public order offenses' },
-  { name: 'Property', description: 'Property-related offenses' },
-  { name: 'Violence', description: 'Violent offenses' },
+  { name: 'Drug', description: 'Drug-related offenses', color: '#3b82f6' },
+  { name: 'Driving', description: 'Driving-related offenses', color: '#10b981' },
+  { name: 'Public Order', description: 'Public order offenses', color: '#a855f7' },
+  { name: 'Property', description: 'Property-related offenses', color: '#f59e0b' },
+  { name: 'Violence', description: 'Violent offenses', color: '#ef4444' },
 ];
 
 export function CategorySelectionPage({ onSelectCategory, onBack }: CategorySelectionPageProps) {
@@ -30,7 +30,7 @@ export function CategorySelectionPage({ onSelectCategory, onBack }: CategorySele
               <button
                 key={category.name}
                 onClick={() => onSelectCategory(category.name)}
-                className="p-6 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all duration-200 text-left hover:shadow-md"
+                className="p-6 rounded-lg border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 text-left hover:shadow-lg transform hover:scale-105"
                 style={{ 
                   backgroundColor: 'white',
                 }}
