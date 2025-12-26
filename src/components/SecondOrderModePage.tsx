@@ -49,19 +49,23 @@ export function SecondOrderModePage({
           </div>
 
           {/* First-order offenses list */}
-          <div className="mb-6">
-            <h3 className="font-semibold text-gray-700 mb-3">
-              This group includes the following offenses:
-            </h3>
-            <ul className="list-disc list-inside space-y-2">
-              {secondOrderGroup.firstOrderOffenses.map((offense) => (
-                <li key={offense.name} className="text-gray-700">{offense.name}</li>
-              ))}
-            </ul>
+          <div className="mb-8">
+            <p className="text-base font-semibold text-gray-700 mb-3">
+              This group includes {secondOrderGroup.firstOrderOffenses.length} {secondOrderGroup.firstOrderOffenses.length === 1 ? 'offense' : 'offenses'}:
+            </p>
+            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+              <ul className="space-y-2 list-disc list-inside">
+                {secondOrderGroup.firstOrderOffenses.map((offense) => (
+                  <li key={offense.name} className="text-gray-800 font-medium leading-relaxed marker:text-blue-600">
+                    {offense.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Mode selection */}
-          <div className="mb-8">
+          <div className="mb-8 mt-8">
             <Label className="text-base font-semibold mb-4 block text-gray-700">
               Do you want to aggregate decision for this offense group?
             </Label>
