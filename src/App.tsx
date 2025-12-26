@@ -469,6 +469,7 @@ const MainApp: React.FC = () => {
           decision: r.decision_level,
           lookBackYears: r.look_back_period,
           notes: r.notes,
+          job_specific_risk_tags: r.job_specific_risk_tags,
         }))
 
         setUser({ username: pendingUsername })
@@ -512,6 +513,7 @@ const MainApp: React.FC = () => {
           decision: r.decision_level,
           lookBackYears: r.look_back_period,
           notes: r.notes,
+          job_specific_risk_tags: r.job_specific_risk_tags,
         }))
 
         setUser({ username: pendingUsername })
@@ -649,6 +651,7 @@ const MainApp: React.FC = () => {
       decision: decisionData.decision,
       lookBackYears: decisionData.lookBackYears,
       notes: decisionData.notes,
+      job_specific_risk_tags: decisionData.job_specific_risk_tags,
     }))
     
     // Remove any existing responses for this second-order group
@@ -687,6 +690,7 @@ const MainApp: React.FC = () => {
       decision: decisionData.decision,
       lookBackYears: decisionData.lookBackYears,
       notes: decisionData.notes,
+      job_specific_risk_tags: decisionData.job_specific_risk_tags,
     }
     
     // Update or add response
@@ -800,6 +804,7 @@ const MainApp: React.FC = () => {
         decision_level: r.decision,
         look_back_period: r.lookBackYears,
         notes: r.notes || null,
+        job_specific_risk_tags: r.job_specific_risk_tags || null,
       }))
 
       if (fetchError && fetchError.code !== 'PGRST116') {
@@ -1195,6 +1200,7 @@ const MainApp: React.FC = () => {
                 decision: existingDecision.decision,
                 lookBackYears: existingDecision.lookBackYears,
                 notes: existingDecision.notes,
+                job_specific_risk_tags: existingDecision.job_specific_risk_tags,
               } : undefined}
               onBack={() => {
                 setShowSecondOrderMode(false)
@@ -1248,6 +1254,7 @@ const MainApp: React.FC = () => {
                 decision: existingDecision.decision,
                 lookBackYears: existingDecision.lookBackYears,
                 notes: existingDecision.notes,
+                job_specific_risk_tags: existingDecision.job_specific_risk_tags,
               } : undefined}
               onBack={handleBackFromHierarchical}
               onNext={handleIndividualDecision}

@@ -20,8 +20,9 @@ export interface HierarchicalResponse {
   firstOrder: string;
   isAggregate: boolean;
   decision: DecisionLevel;
-  lookBackYears: number;
+  lookBackYears: number | null;
   notes?: string;
+  job_specific_risk_tags?: string[] | null;
 }
 
 export const OFFENSE_HIERARCHY: Category[] = [

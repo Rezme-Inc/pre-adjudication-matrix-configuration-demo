@@ -28,6 +28,7 @@ export const HierarchicalFinalSubmit: React.FC<{
       decision_level: r.decision,
       look_back_period: r.lookBackYears,
       notes: r.notes || null,
+      job_specific_risk_tags: r.job_specific_risk_tags || null,
     }))
 
     try {
@@ -163,7 +164,7 @@ export const HierarchicalFinalSubmit: React.FC<{
                         </div>
                         <div>
                           <span className="text-gray-600">Look-back: </span>
-                          <span className="font-medium text-gray-900">{formatLookBackPeriod(response.lookBackYears)}</span>
+                          <span className="font-medium text-gray-900">{response.lookBackYears !== null ? formatLookBackPeriod(response.lookBackYears) : 'N/A'}</span>
                         </div>
                       </div>
                       {response.notes && (

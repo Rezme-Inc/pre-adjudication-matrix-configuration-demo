@@ -11,8 +11,9 @@ import { DecisionLevel } from '../data/offenseHierarchy';
 export interface IndividualDecisionData {
   offense: string;
   decision: DecisionLevel;
-  lookBackYears: number;
+  lookBackYears: number | null;
   notes?: string;
+  job_specific_risk_tags?: string[] | null;
 }
 
 interface IndividualDecisionPageProps {
@@ -44,30 +45,37 @@ export function IndividualDecisionPage({
     existingDecision?.decision || 'Always Eligible'
   );
   const [lookBackYears, setLookBackYears] = useState<number>(
-    existingDecision?.lookBackYears ?? 0
+    existingDecision?.lookBackYears ?? 1
   );
   const [lookbackEnabled, setLookbackEnabled] = useState(
-    existingDecision?.decision !== 'Always Eligible' && 
-    existingDecision?.lookBackYears !== NO_TIME_LIMIT && 
-    existingDecision?.lookBackYears !== 0
+    existingDecision ? (
+      existingDecision.decision !== 'Always Eligible' && 
+      existingDecision.lookBackYears !== NO_TIME_LIMIT
+    ) : true
   );
   const [showSlider, setShowSlider] = useState(
-    existingDecision?.decision !== 'Always Eligible' && 
-    existingDecision?.lookBackYears !== NO_TIME_LIMIT && 
-    existingDecision?.lookBackYears !== 0
+    existingDecision ? (
+      existingDecision.decision !== 'Always Eligible' && 
+      existingDecision.lookBackYears !== NO_TIME_LIMIT
+    ) : false
   );
   const [notes, setNotes] = useState(existingDecision?.notes || '');
+  const [selectedRiskTags, setSelectedRiskTags] = useState<string[]>(
+    existingDecision?.job_specific_risk_tags || []
+  );
+  const [riskTagError, setRiskTagError] = useState('');
 
   const decisionValue = decision === 'Always Eligible' ? 'display' : decision === 'Job Dependent' ? 'dispute' : 'review';
 
   const handleDecisionChange = (value: string) => {
     const newDecision = value === 'display' ? 'Always Eligible' : value === 'dispute' ? 'Job Dependent' : 'Always Review';
     setDecision(newDecision);
+    setRiskTagError('');
     if (newDecision === 'Always Eligible') {
       setShowSlider(false);
       setTimeout(() => {
-        setLookbackEnabled(false);
-        setLookBackYears(0);
+        setLookbackEnabled(true);
+        setLookBackYears(1);
       }, 200);
     } else {
       if (lookBackYears === 0 || lookBackYears === NO_TIME_LIMIT) {
@@ -88,11 +96,36 @@ export function IndividualDecisionPage({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate risk tags for Job Dependent
+    if (decision === 'Job Dependent' && selectedRiskTags.length === 0) {
+      setRiskTagError('Please select at least one job-specific risk tag for Job Dependent decisions.');
+      return;
+    }
+    
+    // Determine job_specific_risk_tags based on decision
+    let jobSpecificRiskTags: string[] | null = null;
+    if (decision === 'Always Eligible') {
+      jobSpecificRiskTags = null;
+    } else if (decision === 'Job Dependent') {
+      jobSpecificRiskTags = selectedRiskTags;
+    } else if (decision === 'Always Review') {
+      jobSpecificRiskTags = ['always review'];
+    }
+    
+    // Determine final lookBackYears based on decision and checkbox state
+    let finalLookBackYears: number | null;
+    if (decision === 'Always Eligible') {
+      finalLookBackYears = null;
+    } else {
+      finalLookBackYears = lookbackEnabled ? lookBackYears : NO_TIME_LIMIT;
+    }
+    
     const response: IndividualDecisionData = {
       offense,
       decision,
-      lookBackYears,
-      notes: notes.trim() || undefined
+      lookBackYears: finalLookBackYears,
+      notes: notes.trim() || undefined,
+      job_specific_risk_tags: jobSpecificRiskTags
     };
 
     onNext(response);
@@ -171,20 +204,21 @@ export function IndividualDecisionPage({
             <div className="flex items-center space-x-3 mb-4">
               <Checkbox
                 id="enable-lookback"
-                checked={!lookbackEnabled}
+                checked={lookbackEnabled}
                 onCheckedChange={(checked) => {
-                  setLookbackEnabled(!checked);
-                  if (checked) {
-                    setLookBackYears(NO_TIME_LIMIT);
-                    setShowSlider(false);
-                  } else {
+                  const isChecked = checked === true;
+                  setLookbackEnabled(isChecked);
+                  if (isChecked) {
                     setLookBackYears(1);
                     setShowSlider(true);
+                  } else {
+                    setLookBackYears(NO_TIME_LIMIT);
+                    setShowSlider(false);
                   }
                 }}
               />
               <Label htmlFor="enable-lookback" className="cursor-pointer font-normal">
-                No time limit (consider all convictions regardless of age)
+                Enable lookback period (uncheck for any time period)
               </Label>
             </div>
 
@@ -211,6 +245,67 @@ export function IndividualDecisionPage({
               </div>
             </div>
           </div>
+
+          {/* Risk Tagging Section - Only visible for Job Dependent */}
+          {decision === 'Job Dependent' && (
+            <div className="mb-8 p-6 bg-purple-50 rounded-lg border-2 border-purple-200 space-y-4">
+              <div>
+                <h3 className="text-gray-900 font-bold text-lg mb-2">
+                  Job dependent risk tagging
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  Choose the job specific risks that this conviction may be related to
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                {[
+                  'Access to company assets and/or financial documents',
+                  'Access to employee information',
+                  'Operating Machinery/Driving',
+                  'Access to vulnerable populations',
+                  'Access to Materials with a Concern of Theft',
+                  'Off-Site Work',
+                  'Direct Reports',
+                  'Interfacing with Customers/Clients',
+                  'Senior Management Position'
+                ].map((tag) => (
+                  <label
+                    key={tag}
+                    className="flex items-start space-x-3 p-3 rounded-md hover:bg-purple-100 transition-colors cursor-pointer"
+                  >
+                    <Checkbox
+                      id={tag}
+                      checked={selectedRiskTags.includes(tag)}
+                      onCheckedChange={(checked) => {
+                        setRiskTagError('');
+                        if (checked) {
+                          setSelectedRiskTags([...selectedRiskTags, tag]);
+                        } else {
+                          setSelectedRiskTags(selectedRiskTags.filter(t => t !== tag));
+                        }
+                      }}
+                    />
+                    <span className="text-gray-900 text-sm cursor-pointer select-none">
+                      {tag}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              
+              {riskTagError && (
+                <div className="text-red-600 text-sm font-semibold mt-3 px-3">
+                  {riskTagError}
+                </div>
+              )}
+              
+              {selectedRiskTags.length === 0 && !riskTagError && (
+                <div className="text-purple-600 text-sm italic mt-3 px-3">
+                  No specific risks selected
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div className="mb-8">
