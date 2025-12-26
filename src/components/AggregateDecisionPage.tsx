@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 import { Slider } from './ui/slider';
@@ -56,9 +56,20 @@ export function AggregateDecisionPage({
   );
   const [notes, setNotes] = useState(existingDecision?.notes || '');
   const [selectedRiskTags, setSelectedRiskTags] = useState<string[]>(
-    existingDecision?.job_specific_risk_tags || []
+    Array.isArray(existingDecision?.job_specific_risk_tags) 
+      ? existingDecision.job_specific_risk_tags 
+      : []
   );
   const [riskTagError, setRiskTagError] = useState('');
+
+  // Sync selectedRiskTags with existingDecision when it changes
+  useEffect(() => {
+    if (existingDecision?.job_specific_risk_tags && Array.isArray(existingDecision.job_specific_risk_tags)) {
+      setSelectedRiskTags(existingDecision.job_specific_risk_tags);
+    } else {
+      setSelectedRiskTags([]);
+    }
+  }, [existingDecision]);
 
   const decisionValue = decision === 'Always Eligible' ? 'display' : decision === 'Job Dependent' ? 'dispute' : 'review';
 
