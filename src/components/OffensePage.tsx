@@ -13,6 +13,7 @@ export type OffenseResponse = {
   decision: 'Always Eligible' | 'Job Dependent' | 'Always Review'
   lookBackYears: number
   notes?: string
+  job_specific_risk_tags?: string[] | null
 }
 
 export const OffensePage: React.FC<{
@@ -38,6 +39,9 @@ export const OffensePage: React.FC<{
   )
   const [notes, setNotes] = useState(existingResponse?.notes || '')
   const [isSaving, setIsSaving] = useState(false)
+  const [selectedRiskTags, setSelectedRiskTags] = useState<string[]>(
+    existingResponse?.job_specific_risk_tags || []
+  )
 
   // Map decision to radio value
   const decisionValue = decision === 'Always Eligible' ? 'display' : decision === 'Job Dependent' ? 'dispute' : 'review'
@@ -75,11 +79,22 @@ export const OffensePage: React.FC<{
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Determine job_specific_risk_tags based on decision type
+    let jobSpecificRiskTags: string[] | null = null
+    if (decision === 'Always Eligible') {
+      jobSpecificRiskTags = null
+    } else if (decision === 'Job Dependent') {
+      jobSpecificRiskTags = selectedRiskTags
+    } else if (decision === 'Always Review') {
+      jobSpecificRiskTags = ['always review']
+    }
+    
     const response: OffenseResponse = {
       offense,
       decision,
       lookBackYears,
-      notes: notes.trim() || undefined
+      notes: notes.trim() || undefined,
+      job_specific_risk_tags: jobSpecificRiskTags
     }
 
     setIsSaving(true)
@@ -96,7 +111,8 @@ export const OffensePage: React.FC<{
         offense_name: offense,
         decision_level: decision,
         look_back_period: lookBackYears,
-        notes: notes.trim() || null
+        notes: notes.trim() || null,
+        job_specific_risk_tags: jobSpecificRiskTags
       }
 
       if (fetchError && fetchError.code !== 'PGRST116') {
@@ -218,6 +234,60 @@ export const OffensePage: React.FC<{
           })}
         </RadioGroup>
       </div>
+
+      {/* Risk Tagging Section - Only visible for Job Dependent */}
+      {decision === 'Job Dependent' && (
+        <div className="mb-10 p-6 bg-purple-50 rounded-lg border-2 border-purple-200 space-y-4">
+          <div>
+            <h3 className="text-gray-900 font-bold text-lg mb-2">
+              Job dependent risk tagging
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Choose the job specific risks that this conviction may be related to
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            {[
+              'Access to company assets and/or financial documents',
+              'Access to employee information',
+              'Operating Machinery/Driving',
+              'Access to vulnerable populations',
+              'Access to Materials with a Concern of Theft',
+              'Off-Site Work',
+              'Direct Reports',
+              'Interfacing with Customers/Clients',
+              'Senior Management Position'
+            ].map((tag) => (
+              <label
+                key={tag}
+                className="flex items-start space-x-3 p-3 rounded-md hover:bg-purple-100 transition-colors cursor-pointer"
+              >
+                <Checkbox
+                  id={tag}
+                  checked={selectedRiskTags.includes(tag)}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedRiskTags([...selectedRiskTags, tag])
+                    } else {
+                      setSelectedRiskTags(selectedRiskTags.filter(t => t !== tag))
+                    }
+                  }}
+                />
+                <span className="text-gray-900 text-sm cursor-pointer select-none">
+                  {tag}
+                </span>
+              </label>
+            ))}
+          </div>
+          
+          {selectedRiskTags.length === 0 && (
+            <div className="text-purple-600 text-sm italic mt-3 px-3">
+              No specific risks selected
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Lookback Period Section */}
       <div className={`space-y-2 mb-10 transition-all duration-300 ease-in-out ${
