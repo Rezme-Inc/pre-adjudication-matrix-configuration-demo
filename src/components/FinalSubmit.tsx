@@ -121,7 +121,7 @@ export const FinalSubmit: React.FC<{
 
   return (
     <div className="max-w-3xl space-y-6">
-      <p className="text-gray-600">Your {responses.length} offense assessments have been successfully recorded.</p>
+      <p className="text-gray-600">Your {responses.length} conviction assessments have been successfully recorded.</p>
       
       {/* Action buttons - stacked on mobile, side by side on desktop */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -153,7 +153,7 @@ export const FinalSubmit: React.FC<{
         <div className="form-group" style={{ marginBottom: 16 }}>
             <label htmlFor="interestEmail" style={{ fontWeight: 500, fontSize: '15px' }}>Email (optional)</label>
             <small style={{ display: 'block', marginTop: 4, marginBottom: 12, color: '#666', lineHeight: '1.5' }}>
-            If you would like to receive the results and resources from this session and access to a customized tool for HPS participants please enter your email address.</small>
+            If you would like to receive these results, please enter your email address.</small>
           <input
             id="interestEmail"
             type="email"

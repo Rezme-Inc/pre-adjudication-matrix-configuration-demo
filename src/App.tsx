@@ -365,7 +365,7 @@ const MainApp: React.FC = () => {
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label htmlFor="landingEmail" style={{ fontWeight: 500, fontSize: '15px' }}>Email (optional)</label>
                   <small style={{ display: 'block', marginTop: 4, marginBottom: 12, color: '#666', lineHeight: '1.5' }}>
-                    If you would like to receive the results and resources from this session and access to a customized tool for HPS participants please enter your email address.
+                    If you would like to receive these results, please enter your email address.
                   </small>
                   <input
                     id="landingEmail"
@@ -437,7 +437,7 @@ const MainApp: React.FC = () => {
             <h1 className="text-3xl font-bold mb-10 text-gray-900 text-center">Instructions</h1>
             
             <p className="text-gray-700 mb-8 leading-relaxed px-6">
-              This tool is designed to help teams determine the job-relevance and look-periods for different conviction types. In this exercise you
+              This tool is designed to help teams determine the job-relevance and look-back periods for different conviction types. In this exercise you
               will be shown nine example convictions and asked to categorize them in two ways. First, you will consider whether the conviction is
               relevant to the jobs at your organization. If you deem it relevant to some or all jobs, you will be asked to consider how far back in a
               candidate's conviction history you would deem appropriate to review for this conviction type.
