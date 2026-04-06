@@ -88,7 +88,7 @@ export const OffensePage: React.FC<{
       // Check if a batch exists for this user
       const { data: existingBatch, error: fetchError } = await supabase
         .from('decisions_batch')
-        .select('batch_id, responses')
+        .select('batch_id, hierarchical_responses')
         .eq('username', username)
         .single()
 
@@ -106,7 +106,7 @@ export const OffensePage: React.FC<{
 
       if (existingBatch) {
         // Batch exists - update it
-        const existingResponses = (existingBatch.responses as any[]) || []
+        const existingResponses = (existingBatch.hierarchical_responses as any[]) || []
         
         // Check if decision for this offense already exists
         const offenseIndex = existingResponses.findIndex(
@@ -127,7 +127,7 @@ export const OffensePage: React.FC<{
         const { error: updateError } = await supabase
           .from('decisions_batch')
           .update({
-            responses: updatedResponses,
+            hierarchical_responses: updatedResponses,
             submitted_at: new Date().toISOString()
           })
           .eq('batch_id', existingBatch.batch_id)
@@ -141,7 +141,7 @@ export const OffensePage: React.FC<{
           .insert({
             batch_id: newBatchId,
             username: username,
-            responses: [newDecision],
+            hierarchical_responses: [newDecision],
             submitted_at: new Date().toISOString()
           })
 

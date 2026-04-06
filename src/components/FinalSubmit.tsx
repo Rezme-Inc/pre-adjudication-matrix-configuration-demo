@@ -52,7 +52,7 @@ export const FinalSubmit: React.FC<{
         const { error: updateError } = await supabase
           .from('decisions_batch')
           .update({
-            responses: responsesData,
+            hierarchical_responses: responsesData,
             completed: true,
             submitted_at: new Date().toISOString()
           })
@@ -68,7 +68,7 @@ export const FinalSubmit: React.FC<{
           .insert({
             batch_id: finalBatchId,
             username: user.username,
-            responses: responsesData,
+            hierarchical_responses: responsesData,
             completed: true,
             submitted_at: new Date().toISOString()
           })

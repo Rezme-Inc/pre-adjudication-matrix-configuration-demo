@@ -14,7 +14,7 @@ type BatchRow = {
   batch_id: string
   submitted_by_name?: string | null
   username?: string | null
-  responses: DecisionRow[]
+  hierarchical_responses: DecisionRow[]
   submitted_at?: string | null
 }
 
@@ -122,7 +122,7 @@ export default function AdminDashboard(): JSX.Element {
       let red = 0
 
       batches.forEach((b) => {
-        const responses = (b.responses as DecisionRow[]) || []
+        const responses = (b.hierarchical_responses as DecisionRow[]) || []
         responses.forEach((r) => {
           if (r.offense_name !== off) return
           const lvl = r.decision_level
@@ -392,7 +392,7 @@ export default function AdminDashboard(): JSX.Element {
                           </span>
                         </div>
                         <div style={{ fontSize: '0.875rem', lineHeight: '1.5' }} className="text-gray-600 line-clamp-2">
-                          {((b.responses || []) as DecisionRow[])
+                          {((b.hierarchical_responses || []) as DecisionRow[])
                             .slice(0, 4)
                             .map((r) => {
                               const lookbackDisplay = r.look_back_period === 0
@@ -403,7 +403,7 @@ export default function AdminDashboard(): JSX.Element {
                               return `${r.offense_name}: ${r.decision_level}${lookbackDisplay}`
                             })
                             .join(' • ')}
-                          {((b.responses || []) as DecisionRow[]).length > 4 && ' • ...'}
+                          {((b.hierarchical_responses || []) as DecisionRow[]).length > 4 && ' • ...'}
                         </div>
                       </div>
                     ))}

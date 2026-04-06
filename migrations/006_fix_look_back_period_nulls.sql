@@ -1,9 +1,9 @@
 -- Migration: Fix null look_back_period values
--- Updates all null look_back_period values to 0 in JSONB responses array
+-- Updates all null look_back_period values to 0 in JSONB hierarchical_responses array
 
--- Update all responses in decisions_batch to replace null look_back_period with 0
+-- Update all hierarchical_responses in decisions_batch to replace null look_back_period with 0
 UPDATE decisions_batch
-  SET responses = (
+  SET hierarchical_responses = (
     SELECT jsonb_agg(
       CASE
         WHEN elem->'look_back_period' = 'null'::jsonb
@@ -11,7 +11,7 @@ UPDATE decisions_batch
         ELSE elem
       END
     )
-    FROM jsonb_array_elements(responses) AS elem
+    FROM jsonb_array_elements(hierarchical_responses) AS elem
   );
 
 -- Optional: Rename submitted_by_name to username if needed for consistency
