@@ -32,10 +32,10 @@ const OFFENSES = [
   // 'Motor Vehicle Theft (Property)',
   // 'Vehicular Manslaughter (Driving/Violent)'
   "Driving While Intoxicated (DWI)",
-  "Simple Assault",
+  "Assault",
   "Disorderly Conduct",
   "Forgery/Fraud",
-  "Distribution of Amphetamines",
+  "Distribution of a Controlled Substance",
   "Burglary",
   "Possession of Marijuana",
   "Parole Violation",
