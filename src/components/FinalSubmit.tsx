@@ -14,7 +14,7 @@ export const FinalSubmit: React.FC<{
 }> = ({ user, responses, onBackToHome }) => {
   const [interestEmail, setInterestEmail] = useState('')
   const [status, setStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
-  const [batchId, setBatchId] = useState<string | null>(null)
+
   const [showStartOverModal, setShowStartOverModal] = useState(false)
 
   const validateEmail = (email: string) => {
@@ -79,20 +79,28 @@ export const FinalSubmit: React.FC<{
       // If user provided an interest email, save it separately
       const validatedInterestEmail = validateEmail(interestEmail)
       if (validatedInterestEmail) {
-        const { error: emailError } = await supabase
+        // Check if email already exists
+        const { data: existingEmail } = await supabase
           .from('interest_emails')
-          .insert({
-            email: validatedInterestEmail,
-            submitted_at: new Date().toISOString()
-          })
+          .select('email')
+          .eq('email', validatedInterestEmail)
+          .single()
 
-        if (emailError) {
-          console.error('Error saving interest email:', emailError)
-          // Don't fail the whole submission if email save fails
+        if (!existingEmail) {
+          const { error: emailError } = await supabase
+            .from('interest_emails')
+            .insert({
+              email: validatedInterestEmail,
+              submitted_at: new Date().toISOString()
+            })
+
+          if (emailError) {
+            console.error('Error saving interest email:', emailError)
+            // Don't fail the whole submission if email save fails
+          }
         }
       }
 
-      setBatchId(finalBatchId)
       setStatus({ type: 'success', message: 'Submission successful!' })
     } catch (err) {
       console.error('Submission error:', err)
@@ -174,17 +182,28 @@ export const FinalSubmit: React.FC<{
               onBlur={(e) => e.target.style.border = '1px solid #d1d5db'}
             />
         </div>
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={status.type === 'loading' || status.type === 'success'}
           className="w-full"
         >
-            {status.type === 'loading' 
-              ? 'Submitting...' 
-              : status.type === 'success' 
-              ? 'Email Submitted ✓' 
+            {status.type === 'loading'
+              ? 'Submitting...'
+              : status.type === 'success'
+              ? 'Email Submitted ✓'
               : 'Submit Email'}
         </Button>
+        {status.message && (
+          <p className={`mt-3 text-sm ${
+            status.type === 'error'
+              ? 'text-red-600'
+              : status.type === 'success'
+              ? 'text-green-600'
+              : 'text-gray-600'
+          }`}>
+            {status.message}
+          </p>
+        )}
         </div>
       </form>
 
@@ -223,24 +242,6 @@ export const FinalSubmit: React.FC<{
         </div>
         <div className="pb-4"></div>
       </div>
-
-      {status.message && (
-        <p className={`mt-4 p-3 rounded-md ${
-          status.type === 'error' 
-            ? 'bg-red-50 text-red-700 border border-red-200' 
-            : status.type === 'success' 
-            ? 'bg-green-50 text-green-700 border border-green-200'
-            : 'bg-gray-50 text-gray-700'
-        }`}>
-          {status.message}
-        </p>
-      )}
-
-      {batchId && (
-        <p className="mt-4 text-sm text-gray-500">
-          Reference ID: <span className="font-mono">{batchId}</span>
-        </p>
-      )}
 
       <ConfirmationModal
         isOpen={showStartOverModal}
