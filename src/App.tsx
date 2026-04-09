@@ -7,6 +7,7 @@ import { FinalSubmit } from './components/FinalSubmit'
 import AdminDashboard from './pages/AdminDashboard'
 import { Button } from './components/ui/button'
 import { supabase } from './supabaseClient'
+import { UsernameConflictModal } from './components/UsernameConflictModal'
 import logoImage from './assets/image (1).png'
 import footerImage from './assets/c6e44e69-4cca-4741-b366-9f882b52ec8a.png'
 import envoyLogo from './assets/08a0f5_fc930def25264a5795c1219c8cfd69ba~mv2.gif'
@@ -20,7 +21,7 @@ type User = {
 type OffenseResponse = {
   offense: string
   decision: 'Always Eligible' | 'Job Dependent' | 'Always Review'
-  lookBackYears: number | null
+  lookBackYears: number
   notes?: string
 }
 
@@ -96,7 +97,7 @@ const Footer: React.FC = () => {
   )
 }
 
-const MenuScreen: React.FC<{ 
+const MenuScreen: React.FC<{
   user: User | null
   onBack: () => void
   onSignOut: () => void
@@ -108,7 +109,7 @@ const MenuScreen: React.FC<{
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, pointerEvents: isOpen ? 'auto' : 'none' }}>
       {/* Backdrop */}
-      <div 
+      <div
         style={{
           position: 'fixed',
           top: 0,
@@ -120,9 +121,9 @@ const MenuScreen: React.FC<{
         }}
         onClick={onBack}
       />
-      
+
       {/* Menu Panel */}
-      <div 
+      <div
         style={{
           position: 'fixed',
           top: 0,
@@ -198,54 +199,139 @@ const MainApp: React.FC = () => {
   const [showInfo, setShowInfo] = useState(false)
   const [landingEmail, setLandingEmail] = useState('')
   const [emailStatus, setEmailStatus] = useState<{ type: 'none' | 'loading' | 'error' | 'success'; message?: string }>({ type: 'none' })
+  const [showUsernameConflict, setShowUsernameConflict] = useState(false)
+  const [existingBatchData, setExistingBatchData] = useState<any>(null)
+  const [pendingUsername, setPendingUsername] = useState('')
+
+  // Mark as completed when reaching final page
+  React.useEffect(() => {
+    const markCompleted = async () => {
+      if (!user || responses.length < FIRST_N_OFFENSES) return
+
+      try {
+        await supabase
+          .from('decisions_batch')
+          .update({ completed: true })
+          .eq('username', user.username)
+      } catch (err) {
+        console.error('Error marking as completed:', err)
+      }
+    }
+
+    markCompleted()
+  }, [responses.length, user])
 
   const handleLandingEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const trimmed = landingEmail.trim()
     if (!trimmed) return
-    
+
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!re.test(trimmed)) {
       setEmailStatus({ type: 'error', message: 'Please enter a valid email address' })
       return
     }
-    
+
     setEmailStatus({ type: 'loading' })
-    
+
     try {
+      // Check if email already exists
+      const { data: existing } = await supabase
+        .from('interest_emails')
+        .select('email')
+        .eq('email', trimmed)
+        .single()
+
+      if (existing) {
+        setEmailStatus({ type: 'success', message: 'Email submitted successfully!' })
+        return
+      }
+
       const { error } = await supabase
         .from('interest_emails')
         .insert({
           email: trimmed,
           submitted_at: new Date().toISOString()
         })
-      
+
       if (error) throw error
-      
+
       setEmailStatus({ type: 'success', message: 'Email submitted successfully!' })
     } catch (err) {
       console.error('Email submission error:', err)
-      setEmailStatus({ 
+      setEmailStatus({
         type: 'error',
         message: err instanceof Error ? err.message : 'Failed to submit. Please try again.'
       })
     }
   }
 
-  const start = (username: string) => {
-    setIsPageTransitioning(true)
-    setTimeout(() => {
-      setUser({ username })
-      setCurrentIndex(0)
-      setResponses([])
-      setIsTransitioning(false)
-      setIsPageTransitioning(false)
-      // Small delay to ensure state is reset before showing instructions
+  // Helper function to find the first unanswered question
+  const findNextQuestionIndex = (savedResponses: any[]): number => {
+    const answeredOffenses = new Set(
+      savedResponses.map((r: any) => r.offense_name)
+    )
+
+    // Find first offense not answered
+    for (let i = 0; i < OFFENSES.length && i < FIRST_N_OFFENSES; i++) {
+      if (!answeredOffenses.has(OFFENSES[i])) {
+        return i
+      }
+    }
+
+    return FIRST_N_OFFENSES // All answered
+  }
+
+  const start = async (username: string) => {
+    // Check if username exists in database
+    try {
+      const { data: existingBatch, error } = await supabase
+        .from('decisions_batch')
+        .select('*')
+        .eq('username', username)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "not found" error, which is fine
+        console.error('Error checking username:', error)
+      }
+
+      if (existingBatch) {
+        // Username exists - show conflict modal
+        setPendingUsername(username)
+        setExistingBatchData(existingBatch)
+        setShowUsernameConflict(true)
+        return
+      }
+
+      // Username doesn't exist - proceed normally
+      setIsPageTransitioning(true)
       setTimeout(() => {
-        setShowInstructions(true)
-      }, 10)
-    }, 400)
+        setUser({ username })
+        setCurrentIndex(0)
+        setResponses([])
+        setIsTransitioning(false)
+        setIsPageTransitioning(false)
+        setTimeout(() => {
+          setShowInstructions(true)
+        }, 10)
+      }, 400)
+    } catch (err) {
+      console.error('Error in start:', err)
+      // If there's an error, proceed normally
+      setIsPageTransitioning(true)
+      setTimeout(() => {
+        setUser({ username })
+        setCurrentIndex(0)
+        setResponses([])
+        setIsTransitioning(false)
+        setIsPageTransitioning(false)
+        setTimeout(() => {
+          setShowInstructions(true)
+        }, 10)
+      }, 400)
+    }
   }
 
   const proceedFromInstructions = () => {
@@ -259,7 +345,19 @@ const MainApp: React.FC = () => {
   }
 
   const handleNext = (resp: OffenseResponse) => {
-    setResponses((r) => [...r, resp])
+    // Update or add response
+    setResponses((r) => {
+      const existingIndex = r.findIndex(response => response.offense === resp.offense)
+      if (existingIndex >= 0) {
+        // Update existing response
+        const updated = [...r]
+        updated[existingIndex] = resp
+        return updated
+      } else {
+        // Add new response
+        return [...r, resp]
+      }
+    })
     // Start fade out animation
     setIsTransitioning(true)
     // After fade out, move to next offense and fade in
@@ -279,7 +377,7 @@ const MainApp: React.FC = () => {
     setIsTransitioning(true)
     // After fade out, move to previous offense and fade in
     setTimeout(() => {
-      setResponses((r) => r.slice(0, -1))
+      // Don't remove responses - keep them so user can see previous answers
       setCurrentIndex((i) => i - 1)
       // Small delay before fade in
       setTimeout(() => {
@@ -321,7 +419,7 @@ const MainApp: React.FC = () => {
   const handleInfoClick = () => {
     // If already on instructions screen, do nothing
     if (showInstructions) return
-    
+
     setIsPageTransitioning(true)
     setTimeout(() => {
       if (showMenuScreen) {
@@ -336,25 +434,131 @@ const MainApp: React.FC = () => {
     }, 400)
   }
 
+  // Handler for when user confirms identity (completed response)
+  const handleConfirmIdentity = () => {
+    if (!existingBatchData) return
+
+    setShowUsernameConflict(false)
+    setIsPageTransitioning(true)
+
+    setTimeout(() => {
+      // Load existing responses and go to final page
+      const savedResponses = existingBatchData.hierarchical_responses || []
+      const convertedResponses: OffenseResponse[] = savedResponses.map((r: any) => ({
+        offense: r.offense_name,
+        decision: r.decision_level,
+        lookBackYears: r.look_back_period,
+        notes: r.notes
+      }))
+
+      setUser({ username: pendingUsername })
+      setResponses(convertedResponses)
+      setCurrentIndex(FIRST_N_OFFENSES) // Go to final page
+      setIsPageTransitioning(false)
+    }, 400)
+  }
+
+  // Handler for when user denies identity (completed response)
+  const handleDenyIdentity = () => {
+    setShowUsernameConflict(false)
+    setPendingUsername('')
+    setExistingBatchData(null)
+    // User stays on login screen to choose different username
+  }
+
+  // Handler for continuing incomplete response
+  const handleContinueProgress = () => {
+    if (!existingBatchData) return
+
+    setShowUsernameConflict(false)
+    setIsPageTransitioning(true)
+
+    setTimeout(() => {
+      const savedResponses = existingBatchData.hierarchical_responses || []
+      const convertedResponses: OffenseResponse[] = savedResponses.map((r: any) => ({
+        offense: r.offense_name,
+        decision: r.decision_level,
+        lookBackYears: r.look_back_period,
+        notes: r.notes
+      }))
+
+      const nextIndex = findNextQuestionIndex(savedResponses)
+
+      setUser({ username: pendingUsername })
+      setResponses(convertedResponses)
+      setCurrentIndex(nextIndex)
+      setIsTransitioning(false)
+      setIsPageTransitioning(false)
+
+      // If all questions answered, go directly to final page (don't show instructions)
+      if (nextIndex >= FIRST_N_OFFENSES) {
+        // responses.length >= FIRST_N_OFFENSES will trigger final page render
+        // Do nothing - the component will render the final page
+      } else {
+        // Show instructions first, then questions
+        setTimeout(() => {
+          setShowInstructions(true)
+        }, 10)
+      }
+    }, 400)
+  }
+
+  // Handler for starting over (delete existing and restart)
+  const handleStartOverFromConflict = async () => {
+    if (!existingBatchData) return
+
+    try {
+      // Delete existing batch
+      await supabase
+        .from('decisions_batch')
+        .delete()
+        .eq('batch_id', existingBatchData.batch_id)
+
+      setShowUsernameConflict(false)
+      setIsPageTransitioning(true)
+
+      setTimeout(() => {
+        setUser({ username: pendingUsername })
+        setCurrentIndex(0)
+        setResponses([])
+        setIsTransitioning(false)
+        setIsPageTransitioning(false)
+        setTimeout(() => {
+          setShowInstructions(true)
+        }, 10)
+      }, 400)
+    } catch (err) {
+      console.error('Error deleting batch:', err)
+      alert('Failed to delete previous responses. Please try again.')
+    }
+  }
+
+  // Handler for changing username
+  const handleChangeUsername = () => {
+    setShowUsernameConflict(false)
+    setPendingUsername('')
+    setExistingBatchData(null)
+    // User stays on login screen
+  }
+
   if (!user) {
     return (
       <div className="bg-white min-h-screen">
         <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} showButtons={false} />
         <div className="flex items-center justify-center p-6 mb-8">
-          <div className={`bg-white p-8 w-full max-w-md transition-all duration-[400ms] ease-in-out ${
-            isPageTransitioning 
-              ? 'opacity-0 -translate-x-8' 
-              : 'opacity-100 translate-x-0'
-          }`}>
+          <div className={`bg-white p-8 w-full max-w-md transition-all duration-[400ms] ease-in-out ${isPageTransitioning
+            ? 'opacity-0 -translate-x-8'
+            : 'opacity-100 translate-x-0'
+            }`}>
             <h1 className="text-4xl mb-8 text-gray-900 text-center leading-tight">
               <span className="font-bold">Background Screening & Pre-adjudication</span><br />
               <span className="font-normal">Consensus Building Tool</span>
             </h1>
             <p className="text-gray-600 mb-10">Please enter a username to begin. No login required.</p>
             <SimpleNameForm onStart={start} />
-            
+
             {/* Email Collection Section */}
-            <form onSubmit={handleLandingEmailSubmit} className="mt-16">
+            <form onSubmit={handleLandingEmailSubmit} style={{ marginTop: '1rem' }}>
               <div style={{
                 backgroundColor: '#f9fafb',
                 border: '1px solid #e5e7eb',
@@ -387,25 +591,24 @@ const MainApp: React.FC = () => {
                     onBlur={(e) => e.target.style.border = '1px solid #d1d5db'}
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={emailStatus.type === 'loading' || emailStatus.type === 'success'}
                   className="w-full"
                 >
-                  {emailStatus.type === 'loading' 
-                    ? 'Submitting...' 
-                    : emailStatus.type === 'success' 
-                    ? 'Email Submitted ✓' 
-                    : 'Submit Email'}
+                  {emailStatus.type === 'loading'
+                    ? 'Submitting...'
+                    : emailStatus.type === 'success'
+                      ? 'Email Submitted ✓'
+                      : 'Submit Email'}
                 </Button>
                 {emailStatus.message && (
-                  <p className={`mt-3 text-sm ${
-                    emailStatus.type === 'error' 
-                      ? 'text-red-600' 
-                      : emailStatus.type === 'success' 
+                  <p className={`mt-3 text-sm ${emailStatus.type === 'error'
+                    ? 'text-red-600'
+                    : emailStatus.type === 'success'
                       ? 'text-green-600'
                       : 'text-gray-600'
-                  }`}>
+                    }`}>
                     {emailStatus.message}
                   </p>
                 )}
@@ -413,12 +616,22 @@ const MainApp: React.FC = () => {
             </form>
           </div>
         </div>
-        <MenuScreen 
+        <MenuScreen
           user={user}
           onBack={handleBackFromMenu}
           onSignOut={handleSignOut}
           onAboutClick={handleAboutClick}
           isOpen={showMenuScreen}
+        />
+        <UsernameConflictModal
+          isOpen={showUsernameConflict}
+          username={pendingUsername}
+          isCompleted={existingBatchData?.completed || false}
+          onConfirmIdentity={handleConfirmIdentity}
+          onDenyIdentity={handleDenyIdentity}
+          onContinue={handleContinueProgress}
+          onStartOver={handleStartOverFromConflict}
+          onChangeUsername={handleChangeUsername}
         />
       </div>
     )
@@ -426,73 +639,72 @@ const MainApp: React.FC = () => {
 
   if (showInstructions) {
     return (
-      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
-        isPageTransitioning 
-          ? 'opacity-0 -translate-x-8' 
-          : 'opacity-100 translate-x-0'
-      }`}>
+      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${isPageTransitioning
+        ? 'opacity-0 -translate-x-8'
+        : 'opacity-100 translate-x-0'
+        }`}>
         <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} showButtons={false} />
         <div className="flex items-center justify-center p-6 flex-1 mb-8">
           <div className="bg-white w-full max-w-3xl p-8">
             <h1 className="text-3xl font-bold mb-10 text-gray-900 text-center">Instructions</h1>
-            
+
             <p className="text-gray-700 mb-8 leading-relaxed px-6">
               This tool is designed to help teams determine the job-relevance and look-back periods for different conviction types. In this exercise you
               will be shown nine example convictions and asked to categorize them in two ways. First, you will consider whether the conviction is
               relevant to the jobs at your organization. If you deem it relevant to some or all jobs, you will be asked to consider how far back in a
               candidate's conviction history you would deem appropriate to review for this conviction type.
             </p>
-            
+
             <div className="space-y-6 mb-10">
-            {/* Always Eligible */}
-            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">Always Eligible</h2>
-              <p className="text-gray-700 mb-4 leading-relaxed">
-                The conviction is unrelated to positions at our company. Candidates with this conviction will not be flagged for further review.
-              </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-md px-4 py-2 inline-block">
-                <p className="text-gray-800 font-bold text-sm">Lookback Period: Not required</p>
+              {/* Always Eligible */}
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+                <h2 className="text-xl font-bold mb-4 text-gray-900">Always Eligible</h2>
+                <p className="text-gray-700 mb-4 leading-relaxed">
+                  The conviction is unrelated to positions at our company. Candidates with this conviction will not be flagged for further review.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-md px-4 py-2 inline-block">
+                  <p className="text-gray-800 font-bold text-sm">Lookback Period: Not required</p>
+                </div>
               </div>
-            </div>
 
-            {/* Job Dependent */}
-            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">Job Dependent</h2>
-              <p className="text-gray-700 mb-4 leading-relaxed">
-                This conviction may be relevant to some jobs at our company, but would not be relevant to others. The conviction will be subject to further review if the candidate is applying for a position with duties or risks relevant to the conviction.
-              </p>
-              <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-2 inline-block">
-                <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
+              {/* Job Dependent */}
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+                <h2 className="text-xl font-bold mb-4 text-gray-900">Job Dependent</h2>
+                <p className="text-gray-700 mb-4 leading-relaxed">
+                  This conviction may be relevant to some jobs at our company, but would not be relevant to others. The conviction will be subject to further review if the candidate is applying for a position with duties or risks relevant to the conviction.
+                </p>
+                <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-2 inline-block">
+                  <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
+                </div>
               </div>
-            </div>
 
-            {/* Always Review */}
-            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">Always Review</h2>
-              <p className="text-gray-700 mb-4 leading-relaxed">
-                The conviction may be relevant to all job categories and requires a full review and individualized assessment before a hiring decision is made.
-              </p>
-              <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-2 inline-block">
-                <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
+              {/* Always Review */}
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+                <h2 className="text-xl font-bold mb-4 text-gray-900">Always Review</h2>
+                <p className="text-gray-700 mb-4 leading-relaxed">
+                  The conviction may be relevant to all job categories and requires a full review and individualized assessment before a hiring decision is made.
+                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-md px-4 py-2 inline-block">
+                  <p className="text-gray-800 font-bold text-sm">Lookback Period: Required (1-10+ years)</p>
+                </div>
               </div>
-            </div>
 
-            {/* Setting Lookback Periods */}
-            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900">Setting Lookback Periods</h2>
-              <p className="text-gray-700 mb-3 leading-relaxed">
-                Choose 1-10+ years based on:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                <li>Known regulations or industry standards</li>
-                <li>Assessment of the conviction's potential risk or relevance to your company</li>
-                <li>Overlay of internal or external research and past experience</li>
-              </ul>
-            </div>
+              {/* Setting Lookback Periods */}
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 shadow-sm">
+                <h2 className="text-xl font-semibold mb-4 text-gray-900">Setting Lookback Periods</h2>
+                <p className="text-gray-700 mb-3 leading-relaxed">
+                  Choose 1-10+ years based on:
+                </p>
+                <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
+                  <li>Known regulations or industry standards</li>
+                  <li>Assessment of the conviction's potential risk or relevance to your company</li>
+                  <li>Overlay of internal or external research and past experience</li>
+                </ul>
+              </div>
             </div>
 
             <div className="flex flex-col items-center space-y-4">
-              <Button 
+              <Button
                 onClick={proceedFromInstructions}
                 className="bg-[#0F206C] hover:bg-[#0a1855] text-white shadow-md hover:shadow-lg transition-shadow"
                 style={{ padding: '24px 80px', fontSize: '20px', fontWeight: '600' }}
@@ -503,7 +715,7 @@ const MainApp: React.FC = () => {
           </div>
         </div>
         <Footer />
-        <MenuScreen 
+        <MenuScreen
           user={user}
           onBack={handleBackFromMenu}
           onSignOut={handleSignOut}
@@ -517,18 +729,12 @@ const MainApp: React.FC = () => {
   // If we've collected FIRST_N_OFFENSES responses, show final submit
   if (responses.length >= FIRST_N_OFFENSES) {
     return (
-      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
-        isPageTransitioning 
-          ? 'opacity-0 -translate-x-8' 
-          : 'opacity-100 translate-x-0'
-      }`}>
+      <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${isPageTransitioning
+        ? 'opacity-0 -translate-x-8'
+        : 'opacity-100 translate-x-0'
+        }`}>
         <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
         <div className="max-w-4xl mx-auto p-6 flex-1 mb-8">
-          <div className="bg-white p-4 mb-6">
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}>Restart</Button>
-            </div>
-          </div>
           {showAdmin ? (
             <div className="bg-white p-6">
               <div className="flex justify-between items-center mb-6">
@@ -540,12 +746,16 @@ const MainApp: React.FC = () => {
           ) : (
             <div className="bg-white p-6">
               <h1 className="text-2xl font-bold mb-6 text-gray-900">Assessment Submitted</h1>
-              <FinalSubmit user={user} responses={responses} />
+              <FinalSubmit
+                user={user}
+                responses={responses}
+                onBackToHome={() => { setUser(null); setResponses([]); setCurrentIndex(0) }}
+              />
             </div>
           )}
         </div>
         <Footer />
-        <MenuScreen 
+        <MenuScreen
           user={user}
           onBack={handleBackFromMenu}
           onSignOut={handleSignOut}
@@ -557,41 +767,43 @@ const MainApp: React.FC = () => {
   }
 
   const offense = OFFENSES[currentIndex]
+  // Find existing response for current offense (for when user goes back)
+  const existingResponse = responses.find(r => r.offense === offense)
+
   return (
-    <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${
-      isPageTransitioning 
-        ? 'opacity-0 -translate-x-8' 
-        : 'opacity-100 translate-x-0'
-    }`}>
+    <div className={`bg-white min-h-screen flex flex-col transition-all duration-[400ms] ease-in-out ${isPageTransitioning
+      ? 'opacity-0 -translate-x-8'
+      : 'opacity-100 translate-x-0'
+      }`}>
       <Header onMenuClick={handleMenuClick} onInfoClick={handleInfoClick} />
       <div className="flex items-center justify-center p-6 flex-1 mb-8">
-        <div className={`bg-white w-full max-w-2xl p-8 transition-all duration-300 ease-in-out ${
-          isTransitioning 
-            ? 'opacity-0 -translate-x-8' 
-            : 'opacity-100 translate-x-0'
-        }`}>
-        <h1 className="text-2xl font-bold mb-6 text-gray-900">Conviction {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
-        <p className="text-gray-600 mb-10">Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
+        <div className={`bg-white w-full max-w-2xl p-8 transition-all duration-300 ease-in-out ${isTransitioning
+          ? 'opacity-0 -translate-x-8'
+          : 'opacity-100 translate-x-0'
+          }`}>
+          <h1 className="text-2xl font-bold mb-6 text-gray-900">Conviction {currentIndex + 1} of {FIRST_N_OFFENSES}</h1>
+          <p className="text-gray-600 mb-10">Please follow the prompt to classify the offense below. Short, factual notes help downstream reviewers.</p>
 
-        <OffensePage
-          key={currentIndex} // Force remount to reset state to "Always Eligible"
-          offense={offense}
-          index={currentIndex}
-          total={FIRST_N_OFFENSES}
-          username={user.username}
-          onBack={handleBack}
-          onNext={handleNext}
-        />
+          <OffensePage
+            key={currentIndex} // Force remount when index changes
+            offense={offense}
+            index={currentIndex}
+            total={FIRST_N_OFFENSES}
+            username={user.username}
+            onBack={handleBack}
+            onNext={handleNext}
+            existingResponse={existingResponse}
+          />
         </div>
       </div>
-        <Footer />
-        <MenuScreen 
-          user={user}
-          onBack={handleBackFromMenu}
-          onSignOut={handleSignOut}
-          onAboutClick={handleAboutClick}
-          isOpen={showMenuScreen}
-        />
+      <Footer />
+      <MenuScreen
+        user={user}
+        onBack={handleBackFromMenu}
+        onSignOut={handleSignOut}
+        onAboutClick={handleAboutClick}
+        isOpen={showMenuScreen}
+      />
     </div>
   )
 }
@@ -615,7 +827,7 @@ const SimpleNameForm: React.FC<{ onStart: (username: string) => void }> = ({ onS
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setUsername(value)
-    
+
     // Clear error when user starts typing
     if (error && value.length >= 5) {
       setError('')
@@ -625,17 +837,17 @@ const SimpleNameForm: React.FC<{ onStart: (username: string) => void }> = ({ onS
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedUsername = username.trim()
-    
+
     if (!trimmedUsername) {
       setError('Username is required')
       return
     }
-    
+
     if (trimmedUsername.length < 5) {
       setError('Username must be at least 5 characters')
       return
     }
-    
+
     setError('')
     onStart(trimmedUsername)
   }
@@ -646,17 +858,16 @@ const SimpleNameForm: React.FC<{ onStart: (username: string) => void }> = ({ onS
     <form onSubmit={submit} className="space-y-4">
       <div>
         <label htmlFor="username" className="block text-sm font-medium text-gray-900 mb-2">Username</label>
-        <input 
-          id="username" 
-          value={username} 
-          onChange={handleUsernameChange} 
-          required 
+        <input
+          id="username"
+          value={username}
+          onChange={handleUsernameChange}
+          required
           minLength={5}
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-transparent ${
-            error 
-              ? 'border-red-300 focus:ring-red-500' 
-              : 'border-gray-300 focus:ring-primary'
-          }`}
+          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:border-transparent ${error
+            ? 'border-red-300 focus:ring-red-500'
+            : 'border-gray-300 focus:ring-primary'
+            }`}
           placeholder="Enter at least 5 characters"
         />
         {error && (
@@ -668,8 +879,8 @@ const SimpleNameForm: React.FC<{ onStart: (username: string) => void }> = ({ onS
           </p>
         )}
       </div>
-      <Button 
-        type="submit" 
+      <Button
+        type="submit"
         disabled={!isValid}
         className="w-full bg-[#0F206C] hover:bg-[#0a1855] text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
